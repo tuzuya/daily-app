@@ -1,8 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { routeSpace } from "./page-space";
 import { ScrollingText } from "./ScrollingText";
 import TaskCardDetail from "./TaskCardDetail";
@@ -10,42 +10,10 @@ import TaskCarousel from "./TaskCarousel";
 import type { Task } from "@/types/task";
 
 const SPACING = 1.8;
-const SWIPE_THRESHOLD = 40;
-
-function findClosestRoute(
-  from: { x: number; y: number },
-  dx: number,
-  dy: number,
-  currentRoute: string,
-): string | null {
-  let best: string | null = null;
-  let bestScore = -Infinity;
-
-  const len = Math.sqrt(dx * dx + dy * dy);
-  if (len === 0) return null;
-  const nx = dx / len;
-  const ny = dy / len;
-
-  for (const [route, pos] of Object.entries(routeSpace)) {
-    if (route === currentRoute) continue;
-    const rx = pos.x - from.x;
-    const ry = pos.y - from.y;
-    const dot = rx * nx + ry * ny;
-    if (dot <= 0) continue;
-    if (dot > bestScore) {
-      bestScore = dot;
-      best = route;
-    }
-  }
-
-  return best;
-}
 
 export default function SpaceNavigator() {
   const pathname = usePathname();
-  const router = useRouter();
   const [viewport, setViewport] = useState({ w: 0, h: 0 });
-  const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const mounted = useRef(false);
 
   useEffect(() => {
@@ -60,28 +28,6 @@ export default function SpaceNavigator() {
   const activePath = pathname === "/" ? "/today" : pathname;
   const isSpaceRoute = activePath in routeSpace;
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    pointerStart.current = { x: e.clientX, y: e.clientY };
-  }, []);
-
-  const onPointerUp = useCallback(
-    (e: React.PointerEvent) => {
-      if (!pointerStart.current) return;
-      const dx = e.clientX - pointerStart.current.x;
-      const dy = e.clientY - pointerStart.current.y;
-      pointerStart.current = null;
-
-      if (Math.sqrt(dx * dx + dy * dy) < SWIPE_THRESHOLD) return;
-
-      const current = routeSpace[activePath];
-      if (!current) return;
-
-      const target = findClosestRoute(current, -dx, -dy, activePath);
-      if (target) router.push(target);
-    },
-    [activePath, router],
-  );
-
   if (!isSpaceRoute || !mounted.current) return null;
 
   const target = routeSpace[activePath]!;
@@ -89,12 +35,7 @@ export default function SpaceNavigator() {
   const unitY = viewport.h * SPACING;
 
   return (
-    <div
-      className="fixed inset-0 z-10 overflow-hidden"
-      style={{ touchAction: "manipulation" }}
-      onPointerDown={onPointerDown}
-      onPointerUp={onPointerUp}
-    >
+    <div className="fixed inset-0 z-10 overflow-hidden">
       <motion.div
         className="relative h-full w-full will-change-transform"
         initial={false}

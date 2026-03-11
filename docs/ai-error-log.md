@@ -84,3 +84,40 @@
   - デプロイ後は必ず iOS 実機でタブ遷移を含む基本操作を確認する
 - **関連ファイル**: `src/app/today/page.tsx`, `src/app/next/page.tsx`, `src/app/overdue/page.tsx`, `src/app/buffs/page.tsx`, `src/app/components/GooeyNav.tsx`
 
+### 2026-03-11: モバイル全体の描画の重さ（Long interaction / Long task）
+- **症状**: iPhone の DevTools で、タブボタン押下やタスクカードの開閉のたびに `Long interaction` / `Long task took ... ms` 警告が出る。タップ直後に一瞬固まる感覚がある
+- **発生条件**: モバイル（特に iOS Safari）で `today` / `next` などのタブルートを操作したとき
+- **原因（タブ遷移まわり）**:
+  1. GooeyNav の `handleClick` / `handleKeyDown` の中で、`router.push` よりも前に以下を同期実行していた
+     - `getBoundingClientRect` / `offsetWidth` を含む `updateEffectPosition`（強制レイアウト・リフロー）
+     - `particleCount` = 15 個分の DOM を `document.createElement` で生成 + 追加
+     - テキストのクラス付け替え + SVG フィルタによる heavy なレンダリング
+     → これらが**すべて1フレーム内の JS** として実行され、INP の Long Task 判定を受けていた
+  2. SVG フィルタ `#gooey` が `feGaussianBlur` 2パス + `feMerge` 構成で、パーティクルとピルの両方に適用されており、レンダリング負荷が高かった
+- **原因（常時描画まわり）**:
+  1. `layout.tsx` の背景が `blur-[120px]` / `blur-[150px]` の巨大 blur 2枚で常に描画されていた
+  2. `SpaceNavigator` が 4画面を常時マウントし、すべて `h-screen` 相当でレンダリングしていた
+  3. TopMenu ボタンに `backdrop-blur-md` があり、画面上部でも常に blur が走っていた
+- **恒久対策（最適化の内容）**:
+  1. **handleClick の即時応答化**
+     - `router.push()` を `handleClick` / `handleKeyDown` の冒頭に移動し、ナビゲーション開始を最優先
+     - パーティクル生成とテキストの active 切り替えを `deferEffects()` にまとめ、`requestAnimationFrame` 内で実行するように変更 → JS の同期処理時間を短縮
+     - `void textRef.current.offsetWidth` による強制リフローを削除
+  2. **パーティクルとフィルタの最適化**
+     - モバイルの視認性と負荷を考慮し、`particleCount` のデフォルトを 15 → 8 に削減
+     - `.particle` / `.point` に `will-change: transform, opacity` と `contain: strict` を付与し、合成レイヤーを事前確保
+     - SVG フィルタは一度 1パス構成に落としつつ、最終的には見た目を優先して multi-pass に戻したが、その分パーティクル数を減らしてバランスを取った
+  3. **常時描画の削減**
+     - `layout.tsx` の巨大 blur 背景を、2枚の `radial-gradient` に置き換え。ランタイム blur を完全になくした
+     - `SpaceNavigator` の4画面について、現在アクティブな画面以外の `div` に `content-visibility: auto` + `contain-intrinsic-size: 0 100dvh` を付与し、オフスクリーンの描画をブラウザにスキップさせる
+     - TopMenu ボタンから `backdrop-blur-md` を削除し、`bg-slate-900/70` の不透明背景に変更
+- **結果**:
+  - 実機 iPhone でタブ押下・タスクカード開閉を繰り返しても、`Long interaction` 警告の頻度が大幅に減少し、操作感が軽くなった
+  - タブエフェクトの gooey 感は維持しつつも、モバイルでの体感パフォーマンスを改善できた
+- **再発防止チェック**:
+  - 1回のユーザー操作（タップ/フリック）に紐づくハンドラ内で、重い DOM 操作（大量の createElement, getBoundingClientRect, offsetWidth 等）を同期で実行しない。必要なら `requestAnimationFrame` で遅延させる
+  - SVG フィルタや巨大な blur, backdrop-filter は「常時」適用しない。背景などは可能な限りグラデーション画像や単純な shadow で代替する
+  - 3D transform, SVG filter, blur, パーティクルのような重い表現は「同時にいくつまで許容するか」を決めておき、モバイルでは特に数を絞る
+  - INP / Long task 警告が出たときは、まず「その操作に紐づく JS ハンドラ内の処理時間」と「同時に走っている CSS エフェクト（フィルタ等）」を疑う
+- **関連ファイル**: `src/app/components/GooeyNav.tsx`, `src/app/layout.tsx`, `src/app/components/SpaceNavigator.tsx`, `src/app/components/TopMenu.tsx`
+

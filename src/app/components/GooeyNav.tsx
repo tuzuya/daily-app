@@ -82,7 +82,7 @@ const normalizePath = (value: string): string => {
 const GooeyNav = ({
   items,
   animationTime = 500,
-  particleCount = 15,
+  particleCount = 8,
   particleDistances = [90, 10],
   particleR = 300,
   timeVariance = 400,

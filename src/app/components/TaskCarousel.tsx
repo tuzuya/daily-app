@@ -62,8 +62,11 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
   return (
     <div
       className="relative w-full overflow-visible"
-      style={{ perspective: "1000px", perspectiveOrigin: "50% 50%" }}
-      onPointerDownCapture={(e) => e.stopPropagation()}
+      style={{
+        perspective: "1000px",
+        perspectiveOrigin: "50% 50%",
+        touchAction: "pan-y",
+      }}
     >
       <motion.div
         className="flex items-center justify-center"

@@ -1,24 +1,17 @@
 "use client";
 
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  type PanInfo,
-} from "framer-motion";
+import { motion, type PanInfo } from "framer-motion";
 import { useCallback, useRef, useState } from "react";
 import type { Task } from "@/types/task";
 import TaskCard from "./TaskCard";
 
-const CARD_W = 200;
-const CARD_GAP = 16;
-const STEP = CARD_W + CARD_GAP;
-const ROTATE_DEG = 45;
-const DEPTH_PX = 180;
-const SCALE_CENTER = 1;
+const CARD_SIZE = 125;
+const ARC_RADIUS = 250;
+const ANGLE_STEP = 0.42;
+const SCALE_CENTER = 1.08;
 const SCALE_SIDE = 0.82;
-const OPACITY_SIDE = 0.55;
-const SWIPE_THRESHOLD = 40;
+const OPACITY_SIDE = 0.85;
+const SWIPE_THRESHOLD = 30;
 
 export type TaskCarouselProps = {
   tasks: Task[];
@@ -27,104 +20,94 @@ export type TaskCarouselProps = {
 
 export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const dragX = useMotionValue(0);
-  const springX = useSpring(0, { stiffness: 300, damping: 30 });
   const isDragging = useRef(false);
 
   const count = tasks.length;
 
   const goTo = useCallback(
     (idx: number) => {
-      const clamped = Math.max(0, Math.min(count - 1, idx));
-      setActiveIndex(clamped);
-      springX.set(-clamped * STEP);
+      setActiveIndex(Math.max(0, Math.min(count - 1, idx)));
     },
-    [count, springX],
+    [count],
   );
 
   const onDragStart = () => {
     isDragging.current = true;
-    dragX.set(0);
   };
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
     isDragging.current = false;
-    const offset = info.offset.x;
-    const velocity = info.velocity.x;
+    const { x: ox } = info.offset;
+    const { x: vx } = info.velocity;
 
     let dir = 0;
-    if (Math.abs(offset) > SWIPE_THRESHOLD || Math.abs(velocity) > 300) {
-      dir = offset > 0 ? -1 : 1;
+    if (Math.abs(ox) > SWIPE_THRESHOLD || Math.abs(vx) > 300) {
+      dir = ox > 0 ? -1 : 1;
     }
     goTo(activeIndex + dir);
   };
 
   return (
     <div
-      className="relative w-full overflow-visible"
-      style={{
-        perspective: "1000px",
-        perspectiveOrigin: "50% 50%",
-        touchAction: "pan-y",
-      }}
+      className="relative w-full"
+      style={{ touchAction: "pan-y" }}
     >
       <motion.div
-        className="flex items-center justify-center"
-        style={{ height: CARD_W + 40 }}
+        className="relative flex items-start justify-center"
+        style={{ height: ARC_RADIUS * 1.1 + CARD_SIZE }}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.15}
+        dragElastic={0.12}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >
         {tasks.map((task, i) => {
           const offset = i - activeIndex;
+          const angle = offset * ANGLE_STEP;
 
-          const rotateY = clamp(offset * ROTATE_DEG, -70, 70);
-          const translateX = offset * STEP;
-          const translateZ = -Math.abs(offset) * DEPTH_PX;
-          const scale = offset === 0 ? SCALE_CENTER : SCALE_SIDE;
-          const opacity = offset === 0 ? 1 : Math.max(OPACITY_SIDE - Math.abs(offset) * 0.15, 0.15);
-          const zIndex = count - Math.abs(offset);
+          const x = ARC_RADIUS * Math.sin(angle);
+          const y = ARC_RADIUS * (1 - Math.cos(angle));
+          const rotateDeg = angle * (180 / Math.PI);
+
+          const absOff = Math.abs(offset);
+          const scale =
+            absOff === 0
+              ? SCALE_CENTER
+              : SCALE_SIDE * Math.max(1 - absOff * 0.06, 0.6);
+          const opacity =
+            absOff === 0
+              ? 1
+              : Math.max(OPACITY_SIDE - absOff * 0.08, 0.15);
+          const zIndex = count - absOff;
 
           return (
             <motion.div
               key={task.id}
               className="absolute"
-              style={{ width: CARD_W, zIndex }}
-              animate={{
-                x: translateX,
-                z: translateZ,
-                rotateY,
-                scale,
-                opacity,
+              style={{
+                width: CARD_SIZE,
+                zIndex,
+                originX: 0.5,
+                originY: 0,
               }}
-              transition={{
-                type: "spring",
-                stiffness: 300,
-                damping: 28,
-              }}
+              animate={{ x, y, rotate: rotateDeg, scale, opacity }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
               onClick={() => {
                 if (isDragging.current) return;
-                if (offset !== 0) {
-                  goTo(i);
-                }
+                if (offset !== 0) goTo(i);
               }}
             >
-              <div style={{ transformStyle: "preserve-3d" }}>
-                <TaskCard
-                  task={task}
-                  onPress={offset === 0 ? onSelect : undefined}
-                />
-              </div>
+              <TaskCard
+                task={task}
+                onPress={offset === 0 ? onSelect : undefined}
+              />
             </motion.div>
           );
         })}
       </motion.div>
 
-      {/* Dot indicators */}
       {count > 1 && (
-        <div className="mt-4 flex justify-center gap-1.5">
+        <div className="mt-2 flex justify-center gap-1.5">
           {tasks.map((_, i) => (
             <button
               key={i}
@@ -142,8 +125,4 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
       )}
     </div>
   );
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
 }

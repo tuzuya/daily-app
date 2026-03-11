@@ -79,14 +79,10 @@ const normalizePath = (value: string): string => {
   return trimmed === "" ? "/" : trimmed;
 };
 
-const isTouchDevice =
-  typeof window !== "undefined" &&
-  window.matchMedia("(pointer: coarse)").matches;
-
 const GooeyNav = ({
   items,
   animationTime = 500,
-  particleCount = isTouchDevice ? 6 : 15,
+  particleCount = 15,
   particleDistances = [90, 10],
   particleR = 300,
   timeVariance = 400,
@@ -570,9 +566,22 @@ const GooeyNav = ({
       <svg style={{ position: "absolute", width: 0, height: 0 }} aria-hidden="true" focusable="false">
         <defs>
           <filter id="gooey">
+            {/* 1. 液体の「芯」を作るためのベースのぼかし */}
             <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
-            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 25 -10" result="goo" />
-            <feBlend in="SourceGraphic" in2="goo" />
+            {/* 2. 輪郭をパキッとさせて液体のスライム感を出す（Core層） */}
+            <feColorMatrix
+              in="blur"
+              mode="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 25 -10"
+              result="gooeyCore"
+            />
+            {/* 3. 元のパーティクルを大きくぼかして「光のオーラ」を作る（Glow層） */}
+            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="glow" />
+            {/* 4. 光のオーラの上に、液体の芯を重ね合わせて完成！ */}
+            <feMerge>
+              <feMergeNode in="glow" />
+              <feMergeNode in="gooeyCore" />
+            </feMerge>
           </filter>
         </defs>
       </svg>

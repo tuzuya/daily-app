@@ -1,9 +1,5 @@
-// 例: src/app/today/page.tsx の場合
+import { redirect } from "next/navigation";
 
-export default function TodayPage() {
-  return (
-    <div>
-      <h1>今日のタスク一覧</h1>
-    </div>
-  );
+export default function RootPage() {
+  redirect("/today");
 }

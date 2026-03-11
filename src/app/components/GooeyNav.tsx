@@ -93,6 +93,8 @@ const GooeyNav = ({
   const navRef = useRef<HTMLUListElement | null>(null);
   const filterRef = useRef<HTMLSpanElement | null>(null);
   const textRef = useRef<HTMLSpanElement | null>(null);
+  const clickNavRef = useRef(false);
+  const prevRouteIndexRef = useRef(-1);
   const router = useRouter();
   const pathname = usePathname();
   const [activeIndex, setActiveIndex] = useState<number>(() =>
@@ -180,6 +182,7 @@ const GooeyNav = ({
     if (!(listItem instanceof HTMLElement) || !selectedItem) return;
 
     if (currentIndex !== index) {
+      clickNavRef.current = true;
       setActiveIndex(index);
       updateEffectPosition(listItem);
 
@@ -220,6 +223,7 @@ const GooeyNav = ({
     if (!(listItem instanceof HTMLElement) || !selectedItem) return;
 
     if (currentIndex !== index) {
+      clickNavRef.current = true;
       setActiveIndex(index);
       updateEffectPosition(listItem);
 
@@ -247,6 +251,46 @@ const GooeyNav = ({
 
     router.push(normalizeHref(selectedItem.href));
   };
+
+  useEffect(() => {
+    if (prevRouteIndexRef.current === -1) {
+      prevRouteIndexRef.current = routeIndex;
+      return;
+    }
+    if (routeIndex === -1 || routeIndex === prevRouteIndexRef.current) {
+      return;
+    }
+    prevRouteIndexRef.current = routeIndex;
+
+    if (clickNavRef.current) {
+      clickNavRef.current = false;
+      return;
+    }
+
+    if (!navRef.current) return;
+    const targetLi = navRef.current.querySelectorAll("li")[routeIndex];
+    if (!(targetLi instanceof HTMLElement)) return;
+
+    setActiveIndex(routeIndex);
+    updateEffectPosition(targetLi);
+
+    if (filterRef.current) {
+      const particles = filterRef.current.querySelectorAll(".particle");
+      particles.forEach((p) => {
+        try { filterRef.current?.removeChild(p); } catch {}
+      });
+    }
+
+    if (textRef.current) {
+      textRef.current.classList.remove("active");
+      void textRef.current.offsetWidth;
+      textRef.current.classList.add("active");
+    }
+
+    if (filterRef.current) {
+      makeParticles(filterRef.current);
+    }
+  }, [routeIndex]);
 
   useEffect(() => {
     if (!navRef.current || !containerRef.current) return;
@@ -320,8 +364,11 @@ const GooeyNav = ({
           }
 
           .gooey-nav-container nav ul {
-            display: flex;
-            gap: 2em;
+            display: grid;
+            grid-template-columns: repeat(3, auto);
+            gap: 0.15em 2.2em;
+            justify-content: center;
+            justify-items: center;
             list-style: none;
             padding: 0 1em;
             margin: 0;
@@ -329,6 +376,23 @@ const GooeyNav = ({
             z-index: 3;
             color: white;
             text-shadow: 0 1px 1px hsl(205deg 30% 10% / 0.2);
+          }
+
+          .gooey-nav-container nav ul li:nth-child(1) {
+            grid-column: 1 / -1;
+            justify-self: center;
+          }
+
+          .gooey-nav-container nav ul li:nth-child(2) {
+            transform: translate(-10px, -8px);
+          }
+
+          .gooey-nav-container nav ul li:nth-child(3) {
+            transform: translateY(14px);
+          }
+
+          .gooey-nav-container nav ul li:nth-child(4) {
+            transform: translate(10px, -8px);
           }
 
           .gooey-nav-container nav ul li {

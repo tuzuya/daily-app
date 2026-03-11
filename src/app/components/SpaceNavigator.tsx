@@ -44,15 +44,15 @@ function findClosestRoute(
 export default function SpaceNavigator() {
   const pathname = usePathname();
   const router = useRouter();
-  const [viewport, setViewport] = useState<{ w: number; h: number } | null>(
-    null,
-  );
+  const [viewport, setViewport] = useState({ w: 0, h: 0 });
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const mounted = useRef(false);
 
   useEffect(() => {
     const update = () =>
       setViewport({ w: window.innerWidth, h: window.innerHeight });
     update();
+    mounted.current = true;
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
@@ -82,7 +82,7 @@ export default function SpaceNavigator() {
     [activePath, router],
   );
 
-  if (!isSpaceRoute || !viewport) return null;
+  if (!isSpaceRoute || !mounted.current) return null;
 
   const target = routeSpace[activePath]!;
   const unitX = viewport.w * SPACING;
@@ -90,7 +90,8 @@ export default function SpaceNavigator() {
 
   return (
     <div
-      className="fixed inset-0 z-10 overflow-hidden touch-none"
+      className="fixed inset-0 z-10 overflow-hidden"
+      style={{ touchAction: "manipulation" }}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
     >
@@ -111,7 +112,7 @@ export default function SpaceNavigator() {
         {Object.entries(routeSpace).map(([route, pos]) => (
           <div
             key={route}
-            className="absolute top-0 left-0 h-screen w-screen"
+            className="absolute top-0 left-0 h-[100dvh] w-screen"
             style={{
               transform: `translate(${pos.x * unitX}px, ${pos.y * unitY}px)`,
             }}

@@ -15,7 +15,7 @@ export default function FallbackMain({
   if (isSpaceRoute) return null;
 
   return (
-    <main className="relative z-[5] h-screen overflow-y-auto px-4 pt-20 pb-28">
+    <main className="relative z-[5] h-[100dvh] overflow-y-auto px-4 pt-20 pb-28">
       {children}
     </main>
   );

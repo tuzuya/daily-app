@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 import GooeyNav from "./components/GooeyNav";
@@ -23,6 +23,13 @@ export const metadata: Metadata = {
   description: "My futuristic daily tracker",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -30,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={cn("font-sans", geist.variable)}>
-      <body className="relative min-h-screen bg-slate-950 text-slate-50 overflow-hidden font-sans">
+      <body className="relative bg-slate-950 text-slate-50 overflow-hidden font-sans h-[100dvh]">
         {/* 1) 最背面：固定の背景エフェクト（オーロラ風） */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-purple-600/30 blur-[120px] rounded-full" />
@@ -49,7 +56,7 @@ export default function RootLayout({
             <TopMenu items={topMenuItems} />
           </header>
 
-          <nav className="p-6 flex justify-center pointer-events-auto">
+          <nav className="px-6 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] flex justify-center pointer-events-auto">
             <GooeyNav items={navItems} initialActiveIndex={0} />
           </nav>
         </div>

@@ -61,7 +61,7 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
       type="button"
       onClick={() => onPress?.(task)}
       className={[
-        "group relative aspect-square w-full overflow-hidden rounded-[20px] border text-left",
+        "group relative aspect-[3/4] w-full overflow-hidden rounded-[14px] border text-left",
         "bg-white/[0.06] backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.35)]",
         "transition-all duration-300 ease-out",
         "hover:bg-white/[0.1] hover:shadow-[0_12px_40px_rgba(100,60,180,0.25)] hover:scale-[1.015]",
@@ -69,18 +69,17 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
         color.border,
       ].join(" ")}
     >
-      {/* Hover shimmer */}
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-        <div className="absolute -inset-[1px] rounded-[20px] bg-gradient-to-br from-white/10 via-transparent to-purple-400/10" />
+        <div className="absolute -inset-[1px] rounded-[14px] bg-gradient-to-br from-white/10 via-transparent to-purple-400/10" />
       </div>
 
-      <div className="relative flex h-full flex-col justify-between p-4">
+      <div className="relative flex h-full flex-col justify-between p-2.5">
         {/* Top: thumbnail + category */}
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-1">
           <div
             className={[
-              "relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full",
-              "bg-gradient-to-br shadow-lg shadow-purple-900/40",
+              "relative h-7 w-7 flex-shrink-0 overflow-hidden rounded-full",
+              "bg-gradient-to-br shadow-md shadow-purple-900/40",
               color.gradient,
             ].join(" ")}
           >
@@ -91,7 +90,7 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm font-bold text-white/90">
+              <div className="flex h-full w-full items-center justify-center text-[0.6rem] font-bold text-white/90">
                 {task.title.charAt(0).toUpperCase()}
               </div>
             )}
@@ -100,7 +99,7 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
 
           <span
             className={[
-              "rounded-full bg-gradient-to-r px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-wider text-white shadow-sm",
+              "rounded-full bg-gradient-to-r px-1.5 py-px text-[0.5rem] font-semibold uppercase tracking-wider text-white shadow-sm",
               color.gradient,
             ].join(" ")}
           >
@@ -109,18 +108,18 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
         </div>
 
         {/* Middle: title */}
-        <p className="text-[0.9rem] font-medium leading-snug text-slate-50 line-clamp-3">
+        <p className="text-[0.7rem] font-medium leading-snug text-slate-50 line-clamp-3">
           {task.title}
         </p>
 
         {/* Bottom: deadline + points */}
         <div className="flex items-end justify-between">
           {deadlineText ? (
-            <div className="flex items-center gap-1 text-[0.65rem] text-slate-400">
+            <div className="flex items-center gap-0.5 text-[0.55rem] text-slate-400">
               <svg
                 viewBox="0 0 20 20"
                 fill="currentColor"
-                className="h-3 w-3 text-slate-500"
+                className="h-2.5 w-2.5 text-slate-500"
               >
                 <path
                   fillRule="evenodd"
@@ -134,11 +133,11 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
             <span />
           )}
 
-          <span className="flex items-center gap-1 text-[0.7rem] font-semibold text-amber-300/90">
+          <span className="flex items-center gap-0.5 text-[0.6rem] font-semibold text-amber-300/90">
             <svg
               viewBox="0 0 20 20"
               fill="currentColor"
-              className="h-3 w-3"
+              className="h-2.5 w-2.5"
             >
               <path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.28l-4.77 2.51.91-5.33L2.27 6.69l5.34-.78L10 1z" />
             </svg>
@@ -147,7 +146,6 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
         </div>
       </div>
 
-      {/* Bottom accent line */}
       <div
         className={[
           "absolute bottom-0 left-0 h-[1.5px] w-full bg-gradient-to-r opacity-40",

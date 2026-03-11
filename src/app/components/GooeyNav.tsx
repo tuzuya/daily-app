@@ -79,10 +79,14 @@ const normalizePath = (value: string): string => {
   return trimmed === "" ? "/" : trimmed;
 };
 
+const isTouchDevice =
+  typeof window !== "undefined" &&
+  window.matchMedia("(pointer: coarse)").matches;
+
 const GooeyNav = ({
   items,
   animationTime = 500,
-  particleCount = 15,
+  particleCount = isTouchDevice ? 6 : 15,
   particleDistances = [90, 10],
   particleR = 300,
   timeVariance = 400,
@@ -175,40 +179,41 @@ const GooeyNav = ({
     textRef.current.textContent = element.textContent ?? "";
   };
 
-  const handleClick = (event: MouseEvent<HTMLAnchorElement>, index: number) => {
-    event.preventDefault();
-    const listItem = event.currentTarget.parentElement;
-    const selectedItem = items[index];
-    if (!(listItem instanceof HTMLElement) || !selectedItem) return;
+  const deferEffects = (listItem: HTMLElement) => {
+    updateEffectPosition(listItem);
 
-    if (currentIndex !== index) {
-      clickNavRef.current = true;
-      setActiveIndex(index);
-      updateEffectPosition(listItem);
+    if (filterRef.current) {
+      const particles = filterRef.current.querySelectorAll(".particle");
+      particles.forEach((p) => {
+        try { filterRef.current?.removeChild(p); } catch {}
+      });
+    }
 
-      if (filterRef.current) {
-        const particles = filterRef.current.querySelectorAll(".particle");
-        particles.forEach((particle) => {
-          try {
-            filterRef.current?.removeChild(particle);
-          } catch {
-            // Ignore stale nodes.
-          }
-        });
-      }
-
+    requestAnimationFrame(() => {
       if (textRef.current) {
         textRef.current.classList.remove("active");
-        void textRef.current.offsetWidth;
         textRef.current.classList.add("active");
       }
 
       if (filterRef.current) {
         makeParticles(filterRef.current);
       }
-    }
+    });
+  };
+
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>, index: number) => {
+    event.preventDefault();
+    const listItem = event.currentTarget.parentElement;
+    const selectedItem = items[index];
+    if (!(listItem instanceof HTMLElement) || !selectedItem) return;
 
     router.push(normalizeHref(selectedItem.href));
+
+    if (currentIndex !== index) {
+      clickNavRef.current = true;
+      setActiveIndex(index);
+      deferEffects(listItem);
+    }
   };
 
   const handleKeyDown = (
@@ -222,34 +227,13 @@ const GooeyNav = ({
     const selectedItem = items[index];
     if (!(listItem instanceof HTMLElement) || !selectedItem) return;
 
+    router.push(normalizeHref(selectedItem.href));
+
     if (currentIndex !== index) {
       clickNavRef.current = true;
       setActiveIndex(index);
-      updateEffectPosition(listItem);
-
-      if (filterRef.current) {
-        const particles = filterRef.current.querySelectorAll(".particle");
-        particles.forEach((particle) => {
-          try {
-            filterRef.current?.removeChild(particle);
-          } catch {
-            // Ignore stale nodes.
-          }
-        });
-      }
-
-      if (textRef.current) {
-        textRef.current.classList.remove("active");
-        void textRef.current.offsetWidth;
-        textRef.current.classList.add("active");
-      }
-
-      if (filterRef.current) {
-        makeParticles(filterRef.current);
-      }
+      deferEffects(listItem);
     }
-
-    router.push(normalizeHref(selectedItem.href));
   };
 
   useEffect(() => {
@@ -273,24 +257,7 @@ const GooeyNav = ({
       if (!(targetLi instanceof HTMLElement)) return;
 
       setActiveIndex(routeIndex);
-      updateEffectPosition(targetLi);
-
-      if (filterRef.current) {
-        const particles = filterRef.current.querySelectorAll(".particle");
-        particles.forEach((p) => {
-          try { filterRef.current?.removeChild(p); } catch {}
-        });
-      }
-
-      if (textRef.current) {
-        textRef.current.classList.remove("active");
-        void textRef.current.offsetWidth;
-        textRef.current.classList.add("active");
-      }
-
-      if (filterRef.current) {
-        makeParticles(filterRef.current);
-      }
+      deferEffects(targetLi);
     } catch {
       // Prevent DOM manipulation errors from crashing on iOS Safari
     }
@@ -491,6 +458,7 @@ const GooeyNav = ({
             height: 25px;
             border-radius: 100%;
             transform-origin: center;
+            will-change: transform, opacity;
           }
 
           .particle {
@@ -499,6 +467,7 @@ const GooeyNav = ({
             top: calc(50% - 8px);
             left: calc(50% - 8px);
             animation: particle calc(var(--time)) ease 1 -350ms;
+            contain: strict;
           }
 
           .point {
@@ -601,20 +570,9 @@ const GooeyNav = ({
       <svg style={{ position: "absolute", width: 0, height: 0 }} aria-hidden="true" focusable="false">
         <defs>
           <filter id="gooey">
-            {/* 1. 液体の「芯」を作るためのベースのぼかし */}
             <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
-            
-            {/* 2. 輪郭をパキッとさせて液体のスライム感を出す（Core層） */}
-            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 25 -10" result="gooeyCore" />
-            
-            {/* 3. 元のパーティクルを大きくぼかして「光のオーラ」を作る（Glow層） */}
-            <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="glow" />
-            
-            {/* 4. 光のオーラの上に、液体の芯を重ね合わせて完成！ */}
-            <feMerge>
-              <feMergeNode in="glow" />      {/* 背面：ネオンの光 */}
-              <feMergeNode in="gooeyCore" /> {/* 前面：液体の本体 */}
-            </feMerge>
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 25 -10" result="goo" />
+            <feBlend in="SourceGraphic" in2="goo" />
           </filter>
         </defs>
       </svg>

@@ -88,8 +88,8 @@ export default function TaskCardDetail({ task, onClose }: TaskCardDetailProps) {
           CATEGORY_GRADIENTS[task.category.toLowerCase()] ?? DEFAULT_GRADIENT,
         ].join(" ")}
       />
-      <div className="pointer-events-none absolute -top-[30%] -left-[20%] h-[70%] w-[70%] rounded-full bg-purple-500/20 blur-[80px]" />
-      <div className="pointer-events-none absolute -bottom-[20%] -right-[20%] h-[60%] w-[60%] rounded-full bg-blue-500/15 blur-[90px]" />
+      <div className="pointer-events-none absolute -top-[30%] -left-[20%] h-[70%] w-[70%] rounded-full bg-purple-500/25 blur-[40px]" />
+      <div className="pointer-events-none absolute -bottom-[20%] -right-[20%] h-[60%] w-[60%] rounded-full bg-blue-500/20 blur-[40px]" />
 
       {/* Starburst decoration */}
       <Starburst className="pointer-events-none absolute top-8 right-6 h-24 w-24 text-white/30" />

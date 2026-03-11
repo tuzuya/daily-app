@@ -105,17 +105,10 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
                 if (isDragging.current) return;
                 if (offset !== 0) {
                   goTo(i);
-                } else {
-                  onSelect?.(task);
                 }
               }}
             >
-              <div
-                style={{
-                  transformStyle: "preserve-3d",
-                  pointerEvents: offset === 0 ? "auto" : "auto",
-                }}
-              >
+              <div style={{ transformStyle: "preserve-3d" }}>
                 <TaskCard
                   task={task}
                   onPress={offset === 0 ? onSelect : undefined}

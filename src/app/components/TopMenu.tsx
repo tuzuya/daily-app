@@ -61,7 +61,7 @@ export default function TopMenu({ items }: TopMenuProps) {
         aria-controls={panelId}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="w-11 h-11 bg-white/8 backdrop-blur-md border border-white/15 rounded-full shadow-lg grid place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+        className="w-11 h-11 bg-slate-900/70 border border-white/15 rounded-full shadow-lg grid place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
       >
         <span className="relative block w-[30px] h-[30px]">
           <span

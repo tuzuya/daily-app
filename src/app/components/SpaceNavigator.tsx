@@ -109,19 +109,24 @@ export default function SpaceNavigator() {
           mass: 1,
         }}
       >
-        {Object.entries(routeSpace).map(([route, pos]) => (
-          <div
-            key={route}
-            className="absolute top-0 left-0 h-[100dvh] w-screen"
-            style={{
-              transform: `translate(${pos.x * unitX}px, ${pos.y * unitY}px)`,
-            }}
-          >
-            <div className="h-full w-full overflow-y-auto px-4 pt-20 pb-28">
-              <ScreenContent route={route} />
+        {Object.entries(routeSpace).map(([route, pos]) => {
+          const isActive = route === activePath;
+          return (
+            <div
+              key={route}
+              className="absolute top-0 left-0 h-[100dvh] w-screen"
+              style={{
+                transform: `translate(${pos.x * unitX}px, ${pos.y * unitY}px)`,
+                contentVisibility: isActive ? "visible" : "auto",
+                containIntrinsicSize: isActive ? undefined : "0 100dvh",
+              }}
+            >
+              <div className="h-full w-full overflow-y-auto px-4 pt-20 pb-28">
+                <ScreenContent route={route} />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </motion.div>
     </div>
   );
@@ -329,17 +334,19 @@ function TaskScreen({ tasks, route }: { tasks: Task[]; route: string }) {
       <AnimatePresence>
         {selected && (
           <motion.div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={() => setSelected(null)}
           >
             <motion.div
+              className="will-change-transform"
               initial={{ scale: 0.92, opacity: 0, y: 24 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0, y: 24 }}
-              transition={{ type: "spring", stiffness: 300, damping: 28 }}
+              transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
               onClick={(e) => e.stopPropagation()}
             >
               <TaskCardDetail

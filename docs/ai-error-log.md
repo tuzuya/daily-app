@@ -67,3 +67,20 @@
 - **関連ファイル**: `src/app/layout.tsx`, `src/app/components/SpaceNavigator.tsx`, `src/app/components/FallbackMain.tsx`, `src/app/login/page.tsx`
 - **参考**: [webkit.org - Designing Websites for iPhone X](https://webkit.org/blog/7929/designing-websites-for-iphone-x/)
 
+### 2026-03-11: iPhone でタブ押下時に「問題が繰り返し起きました」クラッシュ
+- **症状**: タブボタンを押すと iOS Safari が「問題が繰り返し起きました」と表示してページがクラッシュし、リロードループに陥る
+- **発生条件**: iPhone (iOS Safari) でタブボタン（GooeyNav）を押して画面遷移しようとした時
+- **原因（複合的）**:
+  1. **ページファイルの重複レンダリング**: `today/page.tsx`, `next/page.tsx` 等のページファイルが `ScrollingText` + `MockTodoCard` をフル描画する内容のまま残っていた。SpaceNavigator が表示を担当し、`FallbackMain` がタブルートでは `null` を返すため**画面上は見えない**が、Next.js App Router はナビゲーション時にページコンポーネントの RSC ペイロードを処理する。この無駄な処理がメモリ負荷を増大させていた
+  2. **iOS での同時レンダリング負荷**: SpaceNavigator（4画面同時描画 + 3Dカルーセル + spring アニメーション）+ GooeyNav（SVG filter + パーティクル DOM 操作）+ 背景 blur（120px/150px）が同時に動作し、iPhone の WebKit レンダラーを圧迫
+  3. **DOM 操作のエラー伝播**: GooeyNav の routeIndex 変化時エフェクト（`useEffect` 内の DOM 操作）でエラーが発生した場合、catch されずに React のレンダリングサイクルに影響し、クラッシュ → リロード → 同じ URL で同じエラー → クラッシュのループに陥った可能性
+- **恒久対策**:
+  1. タブルートのページファイル（`today/page.tsx` 等）を `return null` の最小シェルに変更。表示は SpaceNavigator が一元管理し、ページファイルは Next.js のルーティング用のスタブとしてのみ存在
+  2. GooeyNav の routeIndex 監視 `useEffect` 内の DOM 操作を `try-catch` で保護し、エラーがレンダリングサイクルに波及しないようにした
+- **再発防止チェック**:
+  - SpaceNavigator で描画を担当するルートのページファイルには、UI コンポーネントを置かない（`return null` にする）
+  - `useEffect` 内で直接 DOM を操作する場合（`document.createElement` 等）は必ず `try-catch` で保護する
+  - iOS Safari はデスクトップより大幅にメモリ/GPU リソースが限られることを常に意識し、blur, 3D transform, SVG filter, パーティクルの同時使用量に注意する
+  - デプロイ後は必ず iOS 実機でタブ遷移を含む基本操作を確認する
+- **関連ファイル**: `src/app/today/page.tsx`, `src/app/next/page.tsx`, `src/app/overdue/page.tsx`, `src/app/buffs/page.tsx`, `src/app/components/GooeyNav.tsx`
+

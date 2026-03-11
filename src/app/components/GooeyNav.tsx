@@ -267,28 +267,32 @@ const GooeyNav = ({
       return;
     }
 
-    if (!navRef.current) return;
-    const targetLi = navRef.current.querySelectorAll("li")[routeIndex];
-    if (!(targetLi instanceof HTMLElement)) return;
+    try {
+      if (!navRef.current) return;
+      const targetLi = navRef.current.querySelectorAll("li")[routeIndex];
+      if (!(targetLi instanceof HTMLElement)) return;
 
-    setActiveIndex(routeIndex);
-    updateEffectPosition(targetLi);
+      setActiveIndex(routeIndex);
+      updateEffectPosition(targetLi);
 
-    if (filterRef.current) {
-      const particles = filterRef.current.querySelectorAll(".particle");
-      particles.forEach((p) => {
-        try { filterRef.current?.removeChild(p); } catch {}
-      });
-    }
+      if (filterRef.current) {
+        const particles = filterRef.current.querySelectorAll(".particle");
+        particles.forEach((p) => {
+          try { filterRef.current?.removeChild(p); } catch {}
+        });
+      }
 
-    if (textRef.current) {
-      textRef.current.classList.remove("active");
-      void textRef.current.offsetWidth;
-      textRef.current.classList.add("active");
-    }
+      if (textRef.current) {
+        textRef.current.classList.remove("active");
+        void textRef.current.offsetWidth;
+        textRef.current.classList.add("active");
+      }
 
-    if (filterRef.current) {
-      makeParticles(filterRef.current);
+      if (filterRef.current) {
+        makeParticles(filterRef.current);
+      }
+    } catch {
+      // Prevent DOM manipulation errors from crashing on iOS Safari
     }
   }, [routeIndex]);
 

@@ -49,12 +49,12 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
 
   return (
     <div
-      className="relative w-full"
+      className="relative w-full overflow-hidden"
       style={{ touchAction: "pan-y" }}
     >
       <motion.div
         className="relative flex items-start justify-center"
-        style={{ height: ARC_RADIUS * 1.1 + CARD_SIZE }}
+        style={{ height: ARC_RADIUS * 1.1 + CARD_SIZE, touchAction: "none" }}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.12}

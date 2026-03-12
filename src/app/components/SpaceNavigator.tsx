@@ -62,7 +62,7 @@ export default function SpaceNavigator() {
                 containIntrinsicSize: isActive ? undefined : "0 100dvh",
               }}
             >
-              <div className="h-full w-full overflow-y-auto px-4 pt-20 pb-28">
+              <div className="h-full w-full overflow-hidden px-4 pt-20 pb-28">
                 <ScreenContent route={route} />
               </div>
             </div>
@@ -361,7 +361,7 @@ function TaskScreen({ tasks, route }: { tasks: Task[]; route: string }) {
   const isToday = route === "/today";
 
   return (
-    <div className="relative min-h-full">
+    <div className="relative">
       {isToday && <ScrollingText />}
 
       <div className="relative z-10 space-y-8 pt-10">

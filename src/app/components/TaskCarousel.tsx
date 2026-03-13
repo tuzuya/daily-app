@@ -6,7 +6,7 @@ import type { Task } from "@/types/task";
 import TaskCard from "./TaskCard";
 
 const CARD_SIZE = 125;
-const ARC_RADIUS = 250;
+const ARC_RADIUS = 400;
 const ANGLE_STEP = 0.42;
 const SCALE_CENTER = 1.08;
 const SCALE_SIDE = 0.82;
@@ -71,7 +71,7 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
     >
       <motion.div
         className="relative flex items-start justify-center"
-        style={{ height: ARC_RADIUS * 1.1 + CARD_SIZE, touchAction: "none" }}
+        style={{ height: 100 * 1.1 + CARD_SIZE, touchAction: "none" }}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0}

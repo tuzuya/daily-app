@@ -1,20 +1,23 @@
 "use client";
 
 import type { Task } from "@/types/task";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
-  skill: "from-violet-600/60 via-purple-500/40 to-fuchsia-500/30",
-  study: "from-sky-600/60 via-blue-500/40 to-indigo-500/30",
-  health: "from-emerald-600/60 via-teal-500/40 to-cyan-600/30",
   routine: "from-amber-600/60 via-orange-500/40 to-yellow-500/30",
+  health: "from-emerald-600/60 via-teal-500/40 to-cyan-600/30",
+  physical: "from-blue-600/60 via-indigo-500/40 to-violet-500/30",
+  knowledge: "from-violet-600/60 via-purple-500/40 to-fuchsia-500/30",
+  activity: "from-lime-600/60 via-green-500/40 to-emerald-500/30",
   creative: "from-pink-600/60 via-rose-500/40 to-red-500/30",
 };
 
 const CATEGORY_ACCENTS: Record<string, string> = {
-  skill: "text-violet-300",
-  study: "text-sky-300",
-  health: "text-emerald-300",
   routine: "text-amber-300",
+  health: "text-emerald-300",
+  physical: "text-blue-300",
+  knowledge: "text-violet-300",
+  activity: "text-lime-300",
   creative: "text-pink-300",
 };
 
@@ -70,16 +73,80 @@ function formatEstimate(min?: number): string | null {
   return m > 0 ? `${h}h ${m}min` : `${h}h`;
 }
 
+type Level = "easy" | "normal" | "hard" | "extra";
+
+const LEVELS: { value: Level; label: string; points: number }[] = [
+  { value: "easy", label: "Easy", points: 5 },
+  { value: "normal", label: "Normal", points: 10 },
+  { value: "hard", label: "Hard", points: 20 },
+  { value: "extra", label: "Extra", points: 30 },
+];
+
+function inferLevel(points: number): Level {
+  if (points >= 30) return "extra";
+  if (points >= 20) return "hard";
+  if (points >= 10) return "normal";
+  return "easy";
+}
+
+function minutesToTaskTime(min?: number): { d: number; h: number; m: number } {
+  const total = Math.max(0, Math.trunc(min ?? 0));
+  const d = Math.min(3, Math.floor(total / (60 * 24)));
+  const remAfterD = total - d * 60 * 24;
+  const h = Math.min(24, Math.floor(remAfterD / 60));
+  const m = Math.min(60, remAfterD - h * 60);
+  return { d, h, m };
+}
+
+function taskTimeToMinutes(t: { d: number; h: number; m: number }): number {
+  const d = Math.max(0, Math.min(3, Math.trunc(t.d)));
+  const h = Math.max(0, Math.min(24, Math.trunc(t.h)));
+  const m = Math.max(0, Math.min(60, Math.trunc(t.m)));
+  return d * 24 * 60 + h * 60 + m;
+}
+
+function formatTaskTime(t: { d: number; h: number; m: number }): string {
+  const parts: string[] = [];
+  if (t.d) parts.push(`${t.d}d`);
+  if (t.h) parts.push(`${t.h}h`);
+  if (t.m) parts.push(`${t.m}m`);
+  return parts.length ? parts.join(" ") : "0m";
+}
+
 export type TaskCardDetailProps = {
   task: Task;
   onClose?: () => void;
 };
 
 export default function TaskCardDetail({ task, onClose }: TaskCardDetailProps) {
-  const estimate = formatEstimate(task.estimatedMinutes);
+  const initialLevel = useMemo(
+    () => inferLevel(task.points),
+    [task.points],
+  );
+  const [level, setLevel] = useState<Level>(initialLevel);
+  const [savingLevel, setSavingLevel] = useState(false);
+  const [taskTime, setTaskTime] = useState(() =>
+    minutesToTaskTime(task.estimatedMinutes),
+  );
+  const [savingTaskTime, setSavingTaskTime] = useState(false);
+
+  const saveTimer = useRef<number | null>(null);
+
+  const patchTask = useCallback(async (patch: Record<string, unknown>) => {
+    const res = await fetch(`/api/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      throw new Error("Failed to save");
+    }
+  }, [task.id]);
+
+  const estimate = formatEstimate(taskTimeToMinutes(taskTime) || undefined);
 
   return (
-    <div className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+    <div className="relative flex w-full max-w-md flex-col overflow-hidden rounded-[28px] border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.55)] max-h-[calc(100dvh-12rem)]">
       {/* Gradient background with aurora blobs */}
       <div className="absolute inset-0 bg-slate-950/80" />
       <div
@@ -94,9 +161,9 @@ export default function TaskCardDetail({ task, onClose }: TaskCardDetailProps) {
       {/* Starburst decoration */}
       <Starburst className="pointer-events-none absolute top-8 right-6 h-24 w-24 text-white/30" />
 
-      <div className="relative z-10 flex flex-col gap-5 p-6 pt-7">
-        {/* Header: type label + close */}
-        <div className="flex items-start justify-between">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+        {/* Header (sticky) */}
+        <div className="sticky top-0 z-20 flex items-start justify-between gap-3 bg-slate-950/35 p-6 pt-7 backdrop-blur-xl">
           <span
             className={[
               "text-sm font-bold uppercase tracking-widest",
@@ -119,75 +186,156 @@ export default function TaskCardDetail({ task, onClose }: TaskCardDetailProps) {
           )}
         </div>
 
-        {/* Image area */}
-        {task.imageUrl && (
-          <div className="overflow-hidden rounded-2xl border border-white/10">
-            <img
-              src={task.imageUrl}
-              alt=""
-              className="h-44 w-full object-cover"
-            />
-          </div>
-        )}
+        {/* Scroll area */}
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-6 pb-6 pr-5">
+          {/* Title */}
+          <h2 className="text-[1.65rem] font-bold leading-tight tracking-tight text-white">
+            {task.title}
+          </h2>
 
-        {/* Title */}
-        <h2 className="text-[1.65rem] font-bold leading-tight tracking-tight text-white">
-          {task.title}
-        </h2>
+          {/* Description */}
+          {task.description && (
+            <p className="text-sm leading-relaxed text-slate-300/90">
+              {task.description}
+            </p>
+          )}
 
-        {/* Description */}
-        {task.description && (
-          <p className="text-sm leading-relaxed text-slate-300/90">
-            {task.description}
-          </p>
-        )}
-
-        {/* Meta info grid */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Points */}
+          {/* Meta info grid */}
+          <div className="grid grid-cols-2 gap-3">
+          {/* Level (auto points) */}
           <MetaChip
             icon={
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-amber-300">
-                <path d="M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.28l-4.77 2.51.91-5.33L2.27 6.69l5.34-.78L10 1z" />
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-3.5 w-3.5 text-white/70"
+              >
+                <path d="M10 2l2.2 4.6 5.1.7-3.7 3.6.9 5.1L10 13.6 5.5 16l.9-5.1L2.7 7.3l5.1-.7L10 2z" />
               </svg>
             }
-            label="Points"
-            value={String(task.points)}
-          />
+            label="Level"
+            value={LEVELS.find((d) => d.value === level)?.label ?? "—"}
+            right={
+              <span className="text-[10px] font-semibold text-slate-400">
+                {savingLevel ? "saving…" : `${LEVELS.find((d) => d.value === level)?.points ?? 0}pt`}
+              </span>
+            }
+          >
+            <div className="mt-2 flex flex-wrap gap-2">
+              {LEVELS.map((d) => {
+                const active = d.value === level;
+                return (
+                  <button
+                    key={d.value}
+                    type="button"
+                    disabled={savingLevel}
+                    onClick={async () => {
+                      setLevel(d.value);
+                      setSavingLevel(true);
+                      try {
+                        await patchTask({ points: d.points });
+                      } finally {
+                        setSavingLevel(false);
+                      }
+                    }}
+                    className={[
+                      "rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors",
+                      active
+                        ? "border-white/25 bg-white/15 text-white"
+                        : "border-white/12 bg-white/[0.06] text-slate-200 hover:bg-white/10",
+                      savingLevel ? "opacity-60" : "",
+                    ].join(" ")}
+                  >
+                    {d.label}
+                  </button>
+                );
+              })}
+            </div>
+          </MetaChip>
 
-          {/* Deadline */}
-          {task.deadline && (
-            <MetaChip
-              icon={
-                <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-slate-400">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              }
-              label="Deadline"
-              value={task.deadline}
-            />
-          )}
-
-          {/* Estimated time */}
-          {estimate && (
-            <MetaChip
-              icon={
-                <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5 text-purple-300">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 2a8 8 0 100 16 8 8 0 000-16zM6.39 6.342a.75.75 0 01.948.474l1.5 4.5a.75.75 0 01-.474.948l-4.5 1.5a.75.75 0 01-.474-.948l1.5-4.5a.75.75 0 01.474-.474l1.026-.5z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              }
-              label="Estimate"
-              value={estimate}
-            />
-          )}
+          {/* Task time */}
+          <MetaChip
+            icon={
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-3.5 w-3.5 text-slate-300"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            }
+            label="Task time"
+            value={estimate ?? "—"}
+            right={
+              <span className="text-[10px] font-semibold text-slate-400">
+                {savingTaskTime ? "saving…" : formatTaskTime(taskTime)}
+              </span>
+            }
+          >
+            <div className="mt-2 space-y-2">
+              <SliderRow
+                label="Days"
+                value={taskTime.d}
+                min={0}
+                max={3}
+                onChange={(v) => {
+                  const next = { ...taskTime, d: v };
+                  setTaskTime(next);
+                  if (saveTimer.current) window.clearTimeout(saveTimer.current);
+                  saveTimer.current = window.setTimeout(async () => {
+                    setSavingTaskTime(true);
+                    try {
+                      await patchTask({ estimatedMinutes: taskTimeToMinutes(next) });
+                    } finally {
+                      setSavingTaskTime(false);
+                    }
+                  }, 250);
+                }}
+              />
+              <SliderRow
+                label="Hours"
+                value={taskTime.h}
+                min={0}
+                max={24}
+                onChange={(v) => {
+                  const next = { ...taskTime, h: v };
+                  setTaskTime(next);
+                  if (saveTimer.current) window.clearTimeout(saveTimer.current);
+                  saveTimer.current = window.setTimeout(async () => {
+                    setSavingTaskTime(true);
+                    try {
+                      await patchTask({ estimatedMinutes: taskTimeToMinutes(next) });
+                    } finally {
+                      setSavingTaskTime(false);
+                    }
+                  }, 250);
+                }}
+              />
+              <SliderRow
+                label="Min"
+                value={taskTime.m}
+                min={0}
+                max={60}
+                onChange={(v) => {
+                  const next = { ...taskTime, m: v };
+                  setTaskTime(next);
+                  if (saveTimer.current) window.clearTimeout(saveTimer.current);
+                  saveTimer.current = window.setTimeout(async () => {
+                    setSavingTaskTime(true);
+                    try {
+                      await patchTask({ estimatedMinutes: taskTimeToMinutes(next) });
+                    } finally {
+                      setSavingTaskTime(false);
+                    }
+                  }, 250);
+                }}
+              />
+            </div>
+          </MetaChip>
 
           {/* Created */}
           <MetaChip
@@ -203,21 +351,22 @@ export default function TaskCardDetail({ task, onClose }: TaskCardDetailProps) {
             label="Created"
             value={formatDate(task.createdAt)}
           />
-        </div>
-
-        {/* Done badge */}
-        {task.done && (
-          <div className="flex items-center gap-2 rounded-xl bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-300">
-            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-              <path
-                fillRule="evenodd"
-                d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Completed
           </div>
-        )}
+
+          {/* Done badge */}
+          {task.done && (
+            <div className="flex items-center gap-2 rounded-xl bg-emerald-500/15 px-3 py-2 text-sm font-medium text-emerald-300">
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path
+                  fillRule="evenodd"
+                  d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Completed
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -227,20 +376,65 @@ function MetaChip({
   icon,
   label,
   value,
+  right,
+  children,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  right?: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-white/[0.06] px-3 py-2.5 backdrop-blur-sm">
-      {icon}
-      <div className="min-w-0">
-        <p className="text-[0.6rem] uppercase tracking-wider text-slate-500">
-          {label}
-        </p>
-        <p className="truncate text-xs font-medium text-slate-200">{value}</p>
+    <div className="rounded-xl bg-white/[0.06] px-3 py-2.5 backdrop-blur-sm">
+      <div className="flex items-center gap-2">
+        {icon}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-[0.6rem] uppercase tracking-wider text-slate-500">
+              {label}
+            </p>
+            {right}
+          </div>
+          <p className="truncate text-xs font-medium text-slate-200">{value}</p>
+        </div>
       </div>
+      {children}
+    </div>
+  );
+}
+
+function SliderRow({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_38px] items-center gap-2">
+      <div className="min-w-0">
+        <span className="mb-1 block text-[9px] font-semibold uppercase tracking-wider text-slate-500">
+          {label}
+        </span>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onChange(parseInt(e.target.value, 10))}
+          className="h-2 w-full cursor-pointer accent-white/80"
+        />
+      </div>
+      <span className="text-right text-xs font-semibold text-slate-200">
+        {value}
+      </span>
     </div>
   );
 }

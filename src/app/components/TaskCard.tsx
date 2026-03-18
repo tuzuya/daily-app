@@ -34,21 +34,31 @@ const DEFAULT_COLOR = {
   border: "border-slate-400/25",
 };
 
+const CATEGORY_IMAGES: Record<string, string> = {
+  routine: "/task-images/routine.png",
+  health: "/task-images/health.png",
+  physical: "/task-images/physical.png",
+  knowledge: "/task-images/knowledge.png",
+  activity: "/task-images/activity.png",
+  creative: "/task-images/creative.png",
+};
+
 function getCategoryColor(category: string) {
   return CATEGORY_COLORS[category.toLowerCase()] ?? DEFAULT_COLOR;
 }
 
-function formatDeadline(deadline?: string): string | null {
-  if (!deadline) return null;
-  const d = new Date(deadline + "T00:00:00");
-  const now = new Date();
-  const diff = Math.ceil(
-    (d.getTime() - now.setHours(0, 0, 0, 0)) / (1000 * 60 * 60 * 24),
-  );
-  if (diff < 0) return `${Math.abs(diff)}d overdue`;
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Tomorrow";
-  return `${diff}d left`;
+function formatTaskTime(min?: number): string | null {
+  if (!min || min <= 0) return null;
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h < 24) return m ? `${h}h ${m}m` : `${h}h`;
+  const d = Math.floor(h / 24);
+  const hh = h % 24;
+  const parts = [`${d}d`];
+  if (hh) parts.push(`${hh}h`);
+  if (m) parts.push(`${m}m`);
+  return parts.join(" ");
 }
 
 export type TaskCardProps = {
@@ -57,8 +67,10 @@ export type TaskCardProps = {
 };
 
 export default function TaskCard({ task, onPress }: TaskCardProps) {
-  const deadlineText = formatDeadline(task.deadline);
   const color = getCategoryColor(task.category);
+  const categoryKey = task.category.toLowerCase();
+  const imageSrc = CATEGORY_IMAGES[categoryKey];
+  const taskTimeText = formatTaskTime(task.estimatedMinutes);
 
   return (
     <button
@@ -87,12 +99,8 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
               color.gradient,
             ].join(" ")}
           >
-            {task.imageUrl ? (
-              <img
-                src={task.imageUrl}
-                alt=""
-                className="h-full w-full object-cover"
-              />
+            {imageSrc ? (
+              <img src={imageSrc} alt="" className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-[0.6rem] font-bold text-white/90">
                 {task.title.charAt(0).toUpperCase()}
@@ -116,14 +124,14 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
           {task.title}
         </p>
 
-        {/* Bottom: deadline + points */}
+        {/* Bottom: task time + points */}
         <div className="flex items-end justify-between">
-          {deadlineText ? (
-            <div className="flex items-center gap-0.5 text-[0.55rem] text-slate-400">
+          {taskTimeText ? (
+            <div className="flex items-center gap-1 text-[0.55rem] font-medium text-slate-300/80">
               <svg
                 viewBox="0 0 20 20"
                 fill="currentColor"
-                className="h-2.5 w-2.5 text-slate-500"
+                className="h-2.5 w-2.5 text-slate-400"
               >
                 <path
                   fillRule="evenodd"
@@ -131,12 +139,11 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
                   clipRule="evenodd"
                 />
               </svg>
-              {deadlineText}
+              {taskTimeText}
             </div>
           ) : (
             <span />
           )}
-
           <span className="flex items-center gap-0.5 text-[0.6rem] font-semibold text-amber-300/90">
             <svg
               viewBox="0 0 20 20"

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { routeSpace } from "./page-space";
+import TaskCardCreate from "./TaskCardCreate";
 import TaskCardDetail from "./TaskCardDetail";
 import TaskCarousel from "./TaskCarousel";
 import type { Task } from "@/types/task";
@@ -197,7 +198,6 @@ function TaskScreen({
 }) {
   const [selected, setSelected] = useState<Task | null>(null);
   const [adding, setAdding] = useState(false);
-  const [title, setTitle] = useState("");
   const meta = screenMeta[route]!;
   const screen = routeToScreen(route);
 
@@ -226,70 +226,26 @@ function TaskScreen({
             <AnimatePresence initial={false}>
               {adding && (
                 <motion.div
-                  className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4"
+                  className="fixed inset-0 z-[60] flex items-start justify-center bg-black/70 px-4 pt-[max(5.5rem,env(safe-area-inset-top))] pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5rem))]"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
                   onClick={() => setAdding(false)}
                 >
-                  <motion.form
-                    className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-950/90 p-4 text-sm shadow-[0_20px_50px_rgba(0,0,0,0.7)] backdrop-blur-2xl"
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      const t = title.trim();
-                      if (!t) return;
-                      try {
-                        await fetch("/api/tasks", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            title: t,
-                            category: "routine",
-                            screen,
-                            points: 0,
-                          }),
-                        });
-                        setTitle("");
-                        setAdding(false);
-                        onTasksRefresh();
-                      } catch {
-                        // とりあえず無視（後でトーストに差し替え余地）
-                      }
-                    }}
-                    initial={{ scale: 0.9, opacity: 0, y: 24 }}
+                  <motion.div
+                    initial={{ scale: 0.92, opacity: 0, y: 24 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.9, opacity: 0, y: 24 }}
+                    exit={{ scale: 0.92, opacity: 0, y: 24 }}
                     transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                      新しいタスク
-                    </p>
-                    <input
-                      type="text"
-                      autoFocus
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="やることを入力"
-                      className="w-full rounded-xl border border-white/15 bg-black/40 px-3 py-2.5 text-sm text-slate-50 placeholder:text-slate-500 focus:border-white/40 focus:outline-none focus:ring-1 focus:ring-white/30"
+                    <TaskCardCreate
+                      screen={screen}
+                      onClose={() => setAdding(false)}
+                      onCreated={onTasksRefresh}
                     />
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setAdding(false)}
-                        className="flex-1 rounded-xl border border-white/15 bg-white/5 py-2.5 text-xs font-medium text-slate-200 hover:bg-white/10"
-                      >
-                        キャンセル
-                      </button>
-                      <button
-                        type="submit"
-                        className="flex-1 rounded-xl bg-slate-100 py-2.5 text-xs font-semibold text-slate-900 hover:bg-white"
-                      >
-                        追加する
-                      </button>
-                    </div>
-                  </motion.form>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -300,7 +256,7 @@ function TaskScreen({
       <AnimatePresence>
         {selected && (
           <motion.div
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 px-4"
+            className="fixed inset-0 z-[60] flex items-start justify-center bg-black/70 px-4 pt-[max(5.5rem,env(safe-area-inset-top))] pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5rem))]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

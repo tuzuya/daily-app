@@ -146,7 +146,7 @@ export default function TaskCardDetail({ task, onClose }: TaskCardDetailProps) {
   const estimate = formatEstimate(taskTimeToMinutes(taskTime) || undefined);
 
   return (
-    <div className="relative w-full max-w-md overflow-hidden rounded-[28px] border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.55)] max-h-[calc(100dvh-12rem)]">
+    <div className="relative flex w-full max-w-md flex-col overflow-hidden rounded-[28px] border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.55)] max-h-[calc(100dvh-12rem)]">
       {/* Gradient background with aurora blobs */}
       <div className="absolute inset-0 bg-slate-950/80" />
       <div
@@ -161,7 +161,7 @@ export default function TaskCardDetail({ task, onClose }: TaskCardDetailProps) {
       {/* Starburst decoration */}
       <Starburst className="pointer-events-none absolute top-8 right-6 h-24 w-24 text-white/30" />
 
-      <div className="relative z-10 flex min-h-0 flex-col">
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         {/* Header (sticky) */}
         <div className="sticky top-0 z-20 flex items-start justify-between gap-3 bg-slate-950/35 p-6 pt-7 backdrop-blur-xl">
           <span

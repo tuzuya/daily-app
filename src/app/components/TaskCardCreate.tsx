@@ -34,12 +34,12 @@ const DEFAULT_GRADIENT = "from-slate-600/60 via-slate-500/40 to-slate-400/30";
 const DEFAULT_ACCENT = "text-slate-300";
 
 const CATEGORIES: { value: TaskCategory; label: string }[] = [
-  { value: "routine", label: "ルーティン" },
-  { value: "health", label: "健康" },
-  { value: "physical", label: "体" },
-  { value: "knowledge", label: "学び" },
-  { value: "activity", label: "活動" },
-  { value: "creative", label: "創作" },
+  { value: "routine", label: "Routine" },
+  { value: "health", label: "Health" },
+  { value: "physical", label: "Physical" },
+  { value: "knowledge", label: "Knowledge" },
+  { value: "activity", label: "Activity" },
+  { value: "creative", label: "Creative" },
 ];
 
 function Starburst({ className }: { className?: string }) {
@@ -191,7 +191,7 @@ export default function TaskCardCreate({
   const estimate = formatEstimate(taskTimeToMinutes(taskTime) || undefined);
 
   return (
-    <div className="relative w-full max-w-sm overflow-hidden rounded-[26px] border border-white/10 shadow-[0_22px_70px_rgba(0,0,0,0.55)] max-h-[calc(100dvh-12rem)]">
+    <div className="relative flex w-full max-w-sm flex-col overflow-hidden rounded-[26px] border border-white/10 shadow-[0_22px_70px_rgba(0,0,0,0.55)] max-h-[calc(100dvh-12rem)]">
       <div className="absolute inset-0 bg-slate-950/80" />
       <div
         className={[
@@ -205,7 +205,7 @@ export default function TaskCardCreate({
       <Starburst className="pointer-events-none absolute top-8 right-6 h-24 w-24 text-white/30" />
 
       <form
-        className="relative z-10 flex min-h-0 flex-col"
+        className="relative z-10 flex min-h-0 flex-1 flex-col"
         onSubmit={async (e) => {
           e.preventDefault();
           const t = title.trim();

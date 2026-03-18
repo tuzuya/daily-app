@@ -3,21 +3,25 @@
 import type { Task } from "@/types/task";
 
 const CATEGORY_COLORS: Record<string, { gradient: string; border: string }> = {
-  skill: {
-    gradient: "from-violet-400/80 to-fuchsia-500/80",
-    border: "border-violet-400/25",
-  },
-  study: {
-    gradient: "from-sky-400/80 to-blue-500/80",
-    border: "border-sky-400/25",
+  routine: {
+    gradient: "from-amber-400/80 to-orange-500/80",
+    border: "border-amber-400/25",
   },
   health: {
     gradient: "from-emerald-400/80 to-teal-500/80",
     border: "border-emerald-400/25",
   },
-  routine: {
-    gradient: "from-amber-400/80 to-orange-500/80",
-    border: "border-amber-400/25",
+  physical: {
+    gradient: "from-blue-400/80 to-indigo-500/80",
+    border: "border-blue-400/25",
+  },
+  knowledge: {
+    gradient: "from-violet-400/80 to-purple-500/80",
+    border: "border-violet-400/25",
+  },
+  activity: {
+    gradient: "from-lime-400/80 to-green-500/80",
+    border: "border-lime-400/25",
   },
   creative: {
     gradient: "from-pink-400/80 to-rose-500/80",

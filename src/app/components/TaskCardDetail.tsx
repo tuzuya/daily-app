@@ -3,18 +3,20 @@
 import type { Task } from "@/types/task";
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
-  skill: "from-violet-600/60 via-purple-500/40 to-fuchsia-500/30",
-  study: "from-sky-600/60 via-blue-500/40 to-indigo-500/30",
-  health: "from-emerald-600/60 via-teal-500/40 to-cyan-600/30",
   routine: "from-amber-600/60 via-orange-500/40 to-yellow-500/30",
+  health: "from-emerald-600/60 via-teal-500/40 to-cyan-600/30",
+  physical: "from-blue-600/60 via-indigo-500/40 to-violet-500/30",
+  knowledge: "from-violet-600/60 via-purple-500/40 to-fuchsia-500/30",
+  activity: "from-lime-600/60 via-green-500/40 to-emerald-500/30",
   creative: "from-pink-600/60 via-rose-500/40 to-red-500/30",
 };
 
 const CATEGORY_ACCENTS: Record<string, string> = {
-  skill: "text-violet-300",
-  study: "text-sky-300",
-  health: "text-emerald-300",
   routine: "text-amber-300",
+  health: "text-emerald-300",
+  physical: "text-blue-300",
+  knowledge: "text-violet-300",
+  activity: "text-lime-300",
   creative: "text-pink-300",
 };
 

@@ -116,10 +116,9 @@ function formatTaskTime(t: { d: number; h: number; m: number }): string {
 export type TaskCardDetailProps = {
   task: Task;
   onClose?: () => void;
-  onMoveToToday?: () => void;
 };
 
-export default function TaskCardDetail({ task, onClose, onMoveToToday }: TaskCardDetailProps) {
+export default function TaskCardDetail({ task, onClose }: TaskCardDetailProps) {
   const initialLevel = useMemo(
     () => inferLevel(task.points),
     [task.points],
@@ -368,19 +367,6 @@ export default function TaskCardDetail({ task, onClose, onMoveToToday }: TaskCar
             </div>
           )}
         </div>
-
-        {/* Footer: Move to Today */}
-        {onMoveToToday && (
-          <div className="sticky bottom-0 z-20 bg-slate-950/35 p-5 pt-3 backdrop-blur-xl">
-            <button
-              type="button"
-              onClick={onMoveToToday}
-              className="w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:bg-white/95"
-            >
-              Today へ移動
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

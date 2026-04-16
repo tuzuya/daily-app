@@ -3,6 +3,8 @@
 このファイルは **「何を作るか」（WHAT）** を定義するプロダクト仕様の単一ソースです。
 技術スタック・アーキテクチャ・コード仕様は `docs/ai-dev-guide.md` を参照。
 
+**Cursor / Claude Code**: HOW は常に `docs/ai-dev-guide.md` を正とする（Cursor は `.cursor/rules/` の指示で Read、Claude Code は `CLAUDE.md` の `@docs/ai-dev-guide.md` で起動時展開）。**本ファイル（WHAT）は §10 のとおり、WHAT に触れるときまたはユーザーが明示したときだけ Read**する。本文の重複は `.mdc` / `CLAUDE.md` に置かない。
+
 ## 0. プロジェクト概要
 
 - **用途**: 主に自分用だが、数人の友人にもVercelデプロイ経由で使用させる想定。

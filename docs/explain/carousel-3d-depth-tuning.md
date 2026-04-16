@@ -157,6 +157,26 @@ return { stiffness: 340, damping: 32, mass: 0.9, ... };   // ゆっくり
 | `damping`（摩擦） | 高いほどピタッと止まる。低いほどふわふわ揺れる |
 | `mass`（重さ） | 高いほど慣性が大きく、ゆったり動く |
 
+### ⚠️ velocity はプロパティごとに分離すること
+
+`springForVelocity` が返す `velocity` は **`x`（横位置）にのみ** 適用してください。
+
+`scale` / `opacity` / `rotateY` / `z` に同じ velocity を渡すと、
+速いフリック時にこれらのプロパティが大きくオーバーシュートします。
+（`scale` は 0.75〜1.0 という狭い値域なのに、数百〜数千 px/s の初速が注入されるため）
+
+```tsx
+transition={{
+  // x だけ velocity を引き継ぐ
+  x: { type: "spring", stiffness, damping, mass, velocity },
+  // それ以外は velocity なしで同じ stiffness/damping/mass を使う
+  scale:   { type: "spring", stiffness, damping, mass },
+  opacity: { type: "spring", stiffness, damping, mass },
+  rotateY: { type: "spring", stiffness, damping, mass },
+  z:       { type: "spring", stiffness, damping, mass },
+}}
+```
+
 ---
 
 ## 5. よくある調整パターン

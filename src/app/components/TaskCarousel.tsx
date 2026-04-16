@@ -189,11 +189,20 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
                 isDragging.current
                   ? { type: "tween", duration: 0 }
                   : {
-                      type: "spring",
-                      stiffness: snapSpring.stiffness,
-                      damping: snapSpring.damping,
-                      mass: snapSpring.mass,
-                      velocity: snapSpring.velocity,
+                      // x のみ velocity を引き継ぐ（慣性スライド）
+                      // scale/opacity/rotateY/z に velocity を渡すと
+                      // 速いフリック時に値域が狭いプロパティが大きくオーバーシュートするため分離
+                      x: {
+                        type: "spring",
+                        stiffness: snapSpring.stiffness,
+                        damping: snapSpring.damping,
+                        mass: snapSpring.mass,
+                        velocity: snapSpring.velocity,
+                      },
+                      scale:   { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
+                      opacity: { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
+                      rotateY: { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
+                      z:       { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
                     }
               }
               onClick={() => {

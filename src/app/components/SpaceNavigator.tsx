@@ -188,7 +188,7 @@ const screenMeta: Record<
 };
 
 function TaskScreen({
-  tasks,
+  tasks: initialTasks,
   route,
   onTasksRefresh,
 }: {
@@ -196,10 +196,28 @@ function TaskScreen({
   route: string;
   onTasksRefresh: () => void;
 }) {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
   const [selected, setSelected] = useState<Task | null>(null);
   const [adding, setAdding] = useState(false);
   const meta = screenMeta[route]!;
   const screen = routeToScreen(route);
+
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
+
+  const moveToToday = useCallback(
+    async (task: Task) => {
+      await fetch(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ screen: "today" }),
+      });
+      setTasks((prev) => prev.filter((t) => t.id !== task.id));
+      setSelected(null);
+    },
+    [],
+  );
 
   return (
     <div className="relative">
@@ -274,6 +292,11 @@ function TaskScreen({
               <TaskCardDetail
                 task={selected}
                 onClose={() => setSelected(null)}
+                onMoveToToday={
+                  route !== "/today"
+                    ? () => moveToToday(selected)
+                    : undefined
+                }
               />
             </motion.div>
           </motion.div>

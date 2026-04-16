@@ -5,12 +5,12 @@ import { useCallback, useRef, useState } from "react";
 import type { Task } from "@/types/task";
 import TaskCard from "./TaskCard";
 
-const CARD_SIZE = 125;
-const ARC_RADIUS = 400;
-const ANGLE_STEP = 0.42;
-const SCALE_CENTER = 1.08;
-const SCALE_SIDE = 0.82;
-const OPACITY_SIDE = 0.85;
+const CARD_WIDTH = 140;
+const CARD_GAP = 12;
+const CARD_STEP = CARD_WIDTH + CARD_GAP;
+const SCALE_CENTER = 1.0;
+const SCALE_SIDE = 0.88;
+const OPACITY_SIDE = 0.6;
 
 const DRAG_PX_PER_CARD = 100;
 const VELOCITY_PER_CARD = 500;
@@ -70,8 +70,8 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
       style={{ touchAction: "pan-y" }}
     >
       <motion.div
-        className="relative flex items-start justify-center"
-        style={{ height: 100 * 1.1 + CARD_SIZE, touchAction: "none" }}
+        className="relative flex items-center justify-center"
+        style={{ height: CARD_WIDTH * 1.3, touchAction: "none" }}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0}
@@ -82,21 +82,17 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
       >
         {tasks.map((task, i) => {
           const offset = i - displayIndex;
-          const angle = offset * ANGLE_STEP;
-
-          const x = ARC_RADIUS * Math.sin(angle);
-          const y = ARC_RADIUS * (1 - Math.cos(angle));
-          const rotateDeg = angle * (180 / Math.PI);
+          const x = offset * CARD_STEP;
 
           const absOff = Math.abs(offset);
           const scale =
             absOff < 0.5
               ? SCALE_CENTER
-              : SCALE_SIDE * Math.max(1 - absOff * 0.06, 0.6);
+              : SCALE_SIDE * Math.max(1 - absOff * 0.04, 0.7);
           const opacity =
             absOff < 0.5
               ? 1
-              : Math.max(OPACITY_SIDE - absOff * 0.08, 0.15);
+              : Math.max(OPACITY_SIDE - absOff * 0.15, 0.1);
           const zIndex = count - Math.round(absOff);
 
           return (
@@ -104,12 +100,12 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
               key={task.id}
               className="absolute"
               style={{
-                width: CARD_SIZE,
+                width: CARD_WIDTH,
                 zIndex,
                 originX: 0.5,
-                originY: 0,
+                originY: 0.5,
               }}
-              animate={{ x, y, rotate: rotateDeg, scale, opacity }}
+              animate={{ x, y: 0, rotate: 0, scale, opacity }}
               transition={
                 isDragging.current
                   ? { type: "tween", duration: 0 }

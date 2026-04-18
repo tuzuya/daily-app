@@ -7,5 +7,7 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const client = postgres(connectionString);
+// Transaction pool mode (Supabase "Shared Pooler") does not support prepared statements.
+// https://supabase.com/docs/guides/database/drizzle
+const client = postgres(connectionString, { prepare: false });
 export const db = drizzle(client, { schema });

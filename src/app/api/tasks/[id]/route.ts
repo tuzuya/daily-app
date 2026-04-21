@@ -85,9 +85,17 @@ export async function PATCH(
 
   updates.updatedAt = new Date();
 
-  const [row] = await db.update(tasks).set(updates).where(eq(tasks.id, id)).returning();
-  if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ task: toApiTask(row) });
+  try {
+    const [row] = await db.update(tasks).set(updates).where(eq(tasks.id, id)).returning();
+    if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ task: toApiTask(row) });
+  } catch (error) {
+    console.error(`PATCH /api/tasks/${id} failed`, error);
+    return NextResponse.json(
+      { error: "Database temporarily unavailable" },
+      { status: 503 },
+    );
+  }
 }
 
 export async function DELETE(
@@ -95,8 +103,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const [row] = await db.delete(tasks).where(eq(tasks.id, id)).returning();
-  if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ task: toApiTask(row) });
+  try {
+    const [row] = await db.delete(tasks).where(eq(tasks.id, id)).returning();
+    if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json({ task: toApiTask(row) });
+  } catch (error) {
+    console.error(`DELETE /api/tasks/${id} failed`, error);
+    return NextResponse.json(
+      { error: "Database temporarily unavailable" },
+      { status: 503 },
+    );
+  }
 }
 

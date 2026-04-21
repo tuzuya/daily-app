@@ -47,14 +47,21 @@ export async function GET(req: Request) {
   const screen = searchParams.get("screen");
 
   const where = screen && isScreen(screen) ? eq(tasks.screen, screen) : undefined;
+  try {
+    const rows = await db
+      .select()
+      .from(tasks)
+      .where(where ? and(where) : undefined)
+      .orderBy(desc(tasks.createdAt));
 
-  const rows = await db
-    .select()
-    .from(tasks)
-    .where(where ? and(where) : undefined)
-    .orderBy(desc(tasks.createdAt));
-
-  return NextResponse.json({ tasks: rows.map(toApiTask) });
+    return NextResponse.json({ tasks: rows.map(toApiTask) });
+  } catch (error) {
+    console.error("GET /api/tasks failed", error);
+    return NextResponse.json(
+      { error: "Database temporarily unavailable" },
+      { status: 503 },
+    );
+  }
 }
 
 export async function POST(req: Request) {
@@ -99,7 +106,15 @@ export async function POST(req: Request) {
     updatedAt: new Date(),
   };
 
-  const [row] = await db.insert(tasks).values(insert).returning();
-  return NextResponse.json({ task: toApiTask(row) }, { status: 201 });
+  try {
+    const [row] = await db.insert(tasks).values(insert).returning();
+    return NextResponse.json({ task: toApiTask(row) }, { status: 201 });
+  } catch (error) {
+    console.error("POST /api/tasks failed", error);
+    return NextResponse.json(
+      { error: "Database temporarily unavailable" },
+      { status: 503 },
+    );
+  }
 }
 

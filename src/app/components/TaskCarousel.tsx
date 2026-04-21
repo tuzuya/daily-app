@@ -27,6 +27,30 @@ const RUBBER_BAND = 0.2;
 const RESIST_ZONE = 35; // px: 抵抗が効く距離
 const RESIST_START = 0.3; // 開始時の動きの倍率（0.3 = 30%のみ動く）
 
+// 磁石スナップ設定
+// displayIndex に非線形変換を掛けることで、x・z・回転すべてに同時に磁石効果を与える
+const MAGNET_ZONE = 0.5;  // 磁石ゾーン半径（カード単位）: 0.5=常時有効、小さくすると中間は線形になる
+const MAGNET_POWER = 3.0; // 磁力の強さ（1=線形/無効, 大きいほど鋭くスナップ）
+
+/**
+ * displayIndex に磁石スナップを適用する。
+ *
+ * 最寄りの整数位置（カード定位置）を磁石の極として、MAGNET_ZONE 以内では
+ * 指数カーブで引き寄せる。これにより x・z・rotateY・scale・opacity が
+ * 一枚の帯として同時に非線形スナップする。
+ *
+ * - ゾーン前半（現在の中央から離れ始め）: カードが粘着して離れにくい
+ * - ゾーン後半（次の中央へ近づく）      : 急加速して中央へ飛び込む
+ */
+function applyMagnetism(rawIndex: number): number {
+  const nearestInt = Math.round(rawIndex);
+  const frac = rawIndex - nearestInt; // -0.5 ~ +0.5
+  const absFrac = Math.abs(frac);
+  if (absFrac >= MAGNET_ZONE) return rawIndex; // ゾーン外は線形のまま
+  const t = absFrac / MAGNET_ZONE; // 0=定位置, 1=ゾーン境界
+  return nearestInt + Math.sign(frac) * MAGNET_ZONE * Math.pow(t, MAGNET_POWER);
+}
+
 /**
  * ドラッグ量に初期抵抗を適用する
  * 開始30%の動きで「貼り付き」を表現し、その後なめらかに通常速度へ移行する
@@ -92,7 +116,7 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
     [count],
   );
 
-  const displayIndex = activeIndex + dragOffset;
+  const displayIndex = applyMagnetism(activeIndex + dragOffset);
 
   const onDragStart = () => {
     isDragging.current = true;

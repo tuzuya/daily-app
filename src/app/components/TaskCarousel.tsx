@@ -132,92 +132,111 @@ export default function TaskCarousel({ tasks, onSelect }: TaskCarouselProps) {
 
   return (
     <div
-      className="relative w-full overflow-hidden"
-      style={{ touchAction: "pan-y" }}
+      className="relative w-full"
+      style={{ touchAction: "pan-y", overflow: "clip" }}
     >
-      <motion.div
-        className="relative flex items-center justify-center"
-        style={{ height: CARD_WIDTH * 1.3, touchAction: "none" }}
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0}
-        dragMomentum={false}
-        onDragStart={onDragStart}
-        onDrag={onDrag}
-        onDragEnd={onDragEnd}
+      {/*
+       * 共有パースペクティブコンテナ:
+       * 全カードが同一の消失点を持つ 3D 空間に置かれる。
+       * overflow: clip を使うことで、overflow: hidden が生むスタッキングコンテキストを
+       * 回避し、preserve-3d を正しく継承させている。
+       */}
+      <div
+        style={{
+          perspective: `${PERSPECTIVE}px`,
+          perspectiveOrigin: "50% 50%",
+          height: CARD_WIDTH * 1.3,
+          position: "relative",
+        }}
       >
-        {tasks.map((task, i) => {
-          const offset = i - displayIndex;
-          const x = offset * CARD_STEP;
+        <motion.div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{
+            touchAction: "none",
+            // preserve-3d により子カードが同一 3D 空間に描画される（帯として振る舞う）
+            transformStyle: "preserve-3d",
+          }}
+          drag="x"
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0}
+          dragMomentum={false}
+          onDragStart={onDragStart}
+          onDrag={onDrag}
+          onDragEnd={onDragEnd}
+        >
+          {tasks.map((task, i) => {
+            const offset = i - displayIndex;
+            const x = offset * CARD_STEP;
 
-          const absOff = Math.abs(offset);
+            const absOff = Math.abs(offset);
 
-          // 3D: 端ほど奥へ（translateZ）
-          const translateZ = -absOff * DEPTH_PER_CARD;
+            // 3D: 端ほど奥へ（translateZ）
+            const translateZ = -absOff * DEPTH_PER_CARD;
 
-          // 3D: 端ほど斜めに傾く（rotateY）
-          // 右カード(offset>0)は左向き、左カード(offset<0)は右向きに傾けて中心を向く
-          const rotateY = Math.max(
-            -ROTATE_Y_MAX,
-            Math.min(ROTATE_Y_MAX, -offset * ROTATE_Y_PER_CARD),
-          );
+            // 3D: 端ほど斜めに傾く（rotateY）
+            // 右カード(offset>0): 正のrotateY → 中央側(左辺)が手前、外側(右辺)が奥
+            // 左カード(offset<0): 負のrotateY → 中央側(右辺)が手前、外側(左辺)が奥
+            const rotateY = Math.max(
+              -ROTATE_Y_MAX,
+              Math.min(ROTATE_Y_MAX, offset * ROTATE_Y_PER_CARD),
+            );
 
-          const scale =
-            absOff < 0.5
-              ? SCALE_CENTER
-              : SCALE_SIDE * Math.max(1 - absOff * 0.03, 0.75);
-          const opacity =
-            absOff < 0.5
-              ? 1
-              : Math.max(OPACITY_SIDE - absOff * 0.15, 0.1);
-          const zIndex = count - Math.round(absOff);
+            const scale =
+              absOff < 0.5
+                ? SCALE_CENTER
+                : SCALE_SIDE * Math.max(1 - absOff * 0.03, 0.75);
+            const opacity =
+              absOff < 0.5
+                ? 1
+                : Math.max(OPACITY_SIDE - absOff * 0.15, 0.1);
+            const zIndex = count - Math.round(absOff);
 
-          return (
-            <motion.div
-              key={task.id}
-              className="absolute"
-              style={{
-                width: CARD_WIDTH,
-                zIndex,
-                originX: 0.5,
-                originY: 0.5,
-                // per-element perspective: overflow-hidden との競合を避けつつ3D効果を得る
-                transformPerspective: PERSPECTIVE,
-              }}
-              animate={{ x, y: 0, rotateY, z: translateZ, scale, opacity }}
-              transition={
-                isDragging.current
-                  ? { type: "tween", duration: 0 }
-                  : {
-                      // x のみ velocity を引き継ぐ（慣性スライド）
-                      // scale/opacity/rotateY/z に velocity を渡すと
-                      // 速いフリック時に値域が狭いプロパティが大きくオーバーシュートするため分離
-                      x: {
-                        type: "spring",
-                        stiffness: snapSpring.stiffness,
-                        damping: snapSpring.damping,
-                        mass: snapSpring.mass,
-                        velocity: snapSpring.velocity,
-                      },
-                      scale:   { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
-                      opacity: { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
-                      rotateY: { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
-                      z:       { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
-                    }
-              }
-              onClick={() => {
-                if (isDragging.current) return;
-                if (Math.round(offset) !== 0) setActiveIndex(clamp(i));
-              }}
-            >
-              <TaskCard
-                task={task}
-                onPress={Math.abs(offset) < 0.5 ? onSelect : undefined}
-              />
-            </motion.div>
-          );
-        })}
-      </motion.div>
+            return (
+              <motion.div
+                key={task.id}
+                className="absolute"
+                style={{
+                  width: CARD_WIDTH,
+                  zIndex,
+                  originX: 0.5,
+                  originY: 0.5,
+                  // transformPerspective は不要: 親コンテナの共有 perspective を使用
+                }}
+                animate={{ x, y: 0, rotateY, z: translateZ, scale, opacity }}
+                transition={
+                  isDragging.current
+                    ? { type: "tween", duration: 0 }
+                    : {
+                        // x のみ velocity を引き継ぐ（慣性スライド）
+                        // scale/opacity/rotateY/z に velocity を渡すと
+                        // 速いフリック時に値域が狭いプロパティが大きくオーバーシュートするため分離
+                        x: {
+                          type: "spring",
+                          stiffness: snapSpring.stiffness,
+                          damping: snapSpring.damping,
+                          mass: snapSpring.mass,
+                          velocity: snapSpring.velocity,
+                        },
+                        scale:   { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
+                        opacity: { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
+                        rotateY: { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
+                        z:       { type: "spring", stiffness: snapSpring.stiffness, damping: snapSpring.damping, mass: snapSpring.mass },
+                      }
+                }
+                onClick={() => {
+                  if (isDragging.current) return;
+                  if (Math.round(offset) !== 0) setActiveIndex(clamp(i));
+                }}
+              >
+                <TaskCard
+                  task={task}
+                  onPress={Math.abs(offset) < 0.5 ? onSelect : undefined}
+                />
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </div>
 
       {count > 1 && (
         <div className="mt-2 flex justify-center gap-1.5">

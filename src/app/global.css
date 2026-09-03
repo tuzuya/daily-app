@@ -14,8 +14,8 @@
  * ダークパレットの単一ソースにしている。
  *
  * Figma でトークンが決まったら、下の値を差し替えるだけでよい。
- * Figma の variable 名 ↔ ここの変数名 の対応は
- * docs/explain/design-token-contract.md を参照。
+ * Figma の variable 名 ↔ ここの変数名 の対応表は
+ * docs/ai-dev-guide.md §7.4 を参照。
  * ============================================================ */
 
 :root {

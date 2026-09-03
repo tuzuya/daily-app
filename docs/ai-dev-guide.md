@@ -21,11 +21,14 @@
 ## 2. リポジトリの主要ディレクトリ
 - `src/`: フロントエンド（Next.js アプリ本体）
 - `src/app/`: App Router 配下（ルーティング/レイアウト/ページ）
-- `src/app/global.css`: グローバルスタイル（アニメーション含む）
+- `src/app/global.css`: **デザイントークンの正本** + グローバルスタイル（§7 参照）
 - `src/app/components/`: 画面固有コンポーネント
-- `components/` / `lib/`: 共通コンポーネントやユーティリティ（実態に合わせて更新）
+- `src/app/api/`: Route Handlers（DB に触れてよい唯一の層。§3.5 参照）
+- `lib/`: 共通ユーティリティ・定数
 - `lib/utils.ts`: `cn` ユーティリティ（`clsx` + `tailwind-merge`）
-- `types/`: 型定義
+- `lib/task-design.ts`: **カテゴリ色・レベル定義の正本**（§7.5 参照）
+- `lib/db/`: Drizzle スキーマ（`schema.ts`）と接続（`index.ts`）
+- `types/`: 型定義（`types/task.ts`）
 - `docs/`: 仕様・調整ガイド・運用ドキュメント（AI 向け正本は §10）
 - `CLAUDE.md`（リポジトリ直下）: Claude Code 用。`@docs/*.md` で §10 の正本をインポート（本文は `docs/` に置かない）
 - （バックエンド）: Hono + Cloudflare Workers の配置はプロジェクト構成に合わせて追加（例: `api/` または別リポジトリ）
@@ -107,9 +110,10 @@ Task
 ## 5. 画面レイアウト（レイヤー構成）
 ファイル: `src/app/layout.tsx`
 
-- **背景（最背面 z-0）**: オーロラ風のぼかし要素（紫/青）
+- **背景（最背面 z-0）**: オーロラ風の静的 radial-gradient 2枚（色は `--aurora-1` / `--aurora-2`）
+  - かつては `blur-[120px]` の巨大 blur だったが、モバイル負荷のため gradient に置換済み（`docs/ai-error-log.md` 参照）
 - **SpaceNavigator（z-10）**: タブ4画面を宇宙空間に同時配置し、カメラ移動で切り替える（後述）
-- **children フォールバック（z-5）**: SpaceNavigator 対象外のルート（`/profile` 等）は従来の `children` で表示
+- **children フォールバック（z-5）**: SpaceNavigator 対象外のルート（`/profile` 等）は `FallbackMain` 経由で `children` を表示
 - **フローティングUI（z-50）**:
   - 右上: `TopMenu`（三本線メニュー → Profile等）
   - 下部: `GooeyNav`（タブナビ）
@@ -120,13 +124,14 @@ Task
 - **考え方**: 4つの画面（Today/Next/Overdue/Buffs）が宇宙空間に**常に同時描画**されている。タブを押すと、カメラ（`motion.div` の `x/y`）がスプリングアニメーションでその画面の位置まで移動する。
 - **座標マップ**: `src/app/components/page-space.ts` に各ルートの 2D 座標を定義。
   - `/today`: `(0, 0)` — 中心
-  - `/next`: `(-1, 0)` — 左
-  - `/overdue`: `(0, 1)` — 下
-  - `/buffs`: `(1, 0.5)` — 右下
-- **画面間の間隔**: viewport幅/高さの 115%（`SPACING = 1.15`）。画面同士が重ならないように余白を確保。
+  - `/next`: `(-1, 0.8)` — 左下
+  - `/overdue`: `(0, 1.3)` — 下
+  - `/buffs`: `(1, 0.8)` — 右下
+- **画面間の間隔**: viewport幅/高さの 180%（`SPACING = 1.8`）。画面同士が重ならないように余白を確保。
 - **`/` へのアクセス**: `src/app/page.tsx` で `/today` にリダイレクト。SpaceNavigator内でも `/` は `/today` 扱い。
-- **非タブルート**: SpaceNavigator は `null` を返し、layout の `{children}` が表示される（`/profile` 等）。
-- **ScrollingText**: layout ではなく `TodayContent`（SpaceNavigator内）だけに配置。Today画面専用の演出。
+- **非タブルート**: SpaceNavigator は `null` を返し、`FallbackMain` が layout の `{children}` を表示する（`/profile` 等）。
+- **オフスクリーン最適化**: 非アクティブな画面の `div` には `content-visibility: auto` + `contain-intrinsic-size: 0 100dvh` を付与し、描画をブラウザにスキップさせている（モバイル負荷対策。変更時は必ず維持する）。
+- **タブルートのページファイル**: `today/page.tsx` 等は **`return null` のスタブ**。描画は SpaceNavigator が一元管理する。ここに UI を置くと iOS Safari がクラッシュする（`docs/ai-error-log.md` 参照）。
 
 ## 6. コンポーネント仕様
 
@@ -145,52 +150,95 @@ Task
 - `<filter id="gooey">` を定義し、`.effect.filter { filter: url("#gooey"); }` で適用
 
 **粒子カラー（CSS変数依存）**:
-- 粒子色は `var(--color-1..4)` を参照。`:root` に定義（`src/app/global.css`）
+- 粒子色は `var(--particle-1..4)` を参照。`:root` に定義（`src/app/global.css`）
+- Tailwind v4 の `--color-*` 名前空間と衝突しないよう、`--color-1..4` から改名済み
 
-### 6.2 ScrollingText（背景演出）
-ファイル: `src/app/components/ScrollingText.tsx`
+**既知のlintエラー**: `setActiveIndex` を `useEffect` 内で同期的に呼ぶため `react-hooks/set-state-in-effect` が出る。ルート変化に追従するための実装で、動作はしている。リデザイン時に解消したい。
 
-- 2段の巨大テキストを、左右逆方向に流す
-- 文言は `textLine1` / `textLine2` 配列
-- 周期: `CYCLE_MS = 3800`
+### 6.2 TaskCarousel / TaskCard / TaskCardDetail / TaskCardCreate
+- `TaskCarousel.tsx`: 3D遠近のカードカルーセル。ドラッグ・慣性スナップを自前実装（調整の詳細は `docs/explain/carousel-3d-depth-tuning.md`）
+- `TaskCard.tsx`: カルーセル内の1枚。中央のカードだけタップで詳細が開く
+- `TaskCardDetail.tsx`: 詳細モーダル。Level/所要時間の変更を `PATCH /api/tasks/:id` に即時保存
+- `TaskCardCreate.tsx`: 作成モーダル。`POST /api/tasks` 後に一覧を再取得
 
-**重要**: CSS側のアニメーション時間と **必ず一致**させる（同期がズレると、切替と移動が噛み合わない）
-- `CYCLE_MS = 3800ms` ↔ `global.css` の `.motivation-forward/.motivation-reverse` の duration `3.8s`
-- 調整方法の詳細は `docs/explain/scrolling-text-tuning.md` を参照
+**重複に注意**: `MetaChip` / `SliderRow` / `Starburst` / 時間フォーマット関数が `TaskCardDetail` と `TaskCardCreate` に二重定義されたまま。リデザイン時に共通化する（カテゴリ色と `LEVELS` は §7.5 に一本化済み）。
 
-### 6.3 SpaciousButton
-ファイル: `src/app/components/SpaciousButton.tsx`
+### 6.3 HexagonStatus
+ファイル: `src/app/components/HexagonStatus.tsx`
 
-- グラデーション背景 + hover/active で光る"背面エフェクト"を持つボタン
-- 背面の光るエフェクトは `div` を使って疑似要素的に表現している
+- 完了タスクのポイントをカテゴリ別に集計し、六角形レーダーチャートで表示
+- `/profile` から使用。`GET /api/tasks`（screen 指定なし=全件）を取得して集計
+- SVG の `fill` には Tailwind クラスが使えないため `CATEGORY_DESIGNS[].hex` を使う
 
-### 6.4 GlassSurface（命名/配置に注意）
-同等の実装が複数箇所に存在する:
-- `components/GlassSurface.jsx`
-- `src/app/components/GrassSurface.jsx`（中身は `GlassSurface`）
+### 6.4 削除済みコンポーネント（履歴）
+以下は「どこからも import されていない死んだコード」だったため削除した。
+`git log` から復元できるので、必要になったら履歴を参照する。
 
-暫定ルール:
-- 実装を進める前に、**どちらを正とするか**決める（`src/app/components` へ寄せる等）
-- 片方を直すだけで満足せず、参照元（import先）も含めて統一する
+- `GlassSurface.jsx` — §6.4 で「重複をどちらに寄せるか決める」としていたが、実際には両方とも未使用だったため削除で解決
+- `ScrollingText.tsx` — 連動していた `motivation-*` keyframes も `global.css` から削除。
+  そのため `docs/explain/scrolling-text-tuning.md` は**現存しない実装の解説**になっている
+- `SpaciousButton.tsx` / `MockTodoCard.tsx` / `PageTransition.tsx`
 
-## 7. グローバルCSS（テーマ / モーション / 色）
-ファイル: `src/app/global.css`
+## 7. デザイントークン（正本: `src/app/global.css`）
 
 ### 7.1 Tailwind/shadcnのベース
 - `@import "tailwindcss";`
 - `@import "tw-animate-css";`
 - `@import "shadcn/tailwind.css";`
 
-### 7.2 カラートークン
-- `:root` / `.dark` にOKLCHベースのトークンが定義されている
+### 7.2 このアプリはダーク専用
+以前は shadcn のライト値が `:root`、ダーク値が `.dark` に入っていたが、**`.dark` はどこにも付与されておらず実質未使用**だった（見た目は `layout.tsx` の `bg-slate-950` 直書きで作られていた）。
 
-### 7.3 ScrollingText用のkeyframes
-- `@keyframes motivation-burst-from-right`
-- `@keyframes motivation-burst-from-left`
-- `.motivation-forward` / `.motivation-reverse` が `3.8s linear both`
+現在は `:root` がダークパレットの単一ソース。shadcn 互換トークン（`--background` 等）もそこへ委譲しているので、shadcn コンポーネントを追加してもダーク前提で正しく描画される。
 
-### 7.4 GooeyNav用ネオンパレット
-`--color-1..4` が `:root` に定義されており、GooeyNavの粒子色に使われる。
+**ライトモードを追加する場合**は、`:root` の値を差し替えるのではなく、テーマクラス（または `prefers-color-scheme`）で上書きするブロックを足す。
+
+### 7.3 トークン一覧と対応ユーティリティ
+`:root` に生の値、`@theme inline` で Tailwind ユーティリティへ写している。
+
+| 役割 | CSS変数 | ユーティリティ例 |
+|---|---|---|
+| 地色 | `--ground` | `bg-ground` |
+| 背景演出 | `--aurora-1` / `--aurora-2` | `var()` で直接参照 |
+| ガラス面（4段） | `--surface-1`〜`--surface-4` | `bg-surface-2` |
+| モーダル・コントロール | `--veil` / `--veil-bar` / `--veil-panel` / `--control` / `--field` / `--scrim` | `bg-veil` |
+| 罫線（3段） | `--line-faint` / `--line` / `--line-strong` | `border-line` |
+| 文字（5段） | `--ink` / `--ink-soft` / `--ink-muted` / `--ink-faint` / `--ink-inverse` | `text-ink-muted` |
+| 意味を持つ色 | `--success` / `--danger` / `--points` | `text-success` |
+| カテゴリ6色 | `--category-{key}` | `bg-category-health` |
+| 角丸 | `--r-card` / `--r-chip` / `--r-control` / `--r-sheet` | `rounded-card` |
+| 影 | `--e-card` / `--e-card-hover` / `--e-control` / `--e-panel` / `--e-sheet` | `shadow-sheet` |
+| GooeyNav粒子 | `--particle-1..4` | JS から `var()` で組み立て |
+
+### 7.4 Figma → コード のトークン対応（リデザイン運用）
+Figma の variables 名を下の規約で付けておけば、実装は `global.css` の値差し替えだけで済む。
+
+| Figma variable | CSS変数 |
+|---|---|
+| `color/ground` | `--ground` |
+| `color/surface/1`〜`4` | `--surface-1`〜`--surface-4` |
+| `color/veil`, `color/veil/bar`, `color/veil/panel` | `--veil`, `--veil-bar`, `--veil-panel` |
+| `color/line/faint`, `color/line`, `color/line/strong` | `--line-faint`, `--line`, `--line-strong` |
+| `color/ink`, `color/ink/soft`, `color/ink/muted`, `color/ink/faint`, `color/ink/inverse` | 同名の `--ink*` |
+| `color/category/{routine\|health\|physical\|knowledge\|activity\|creative}` | `--category-{key}` |
+| `radius/card`, `radius/chip`, `radius/control`, `radius/sheet` | `--r-card`, `--r-chip`, `--r-control`, `--r-sheet` |
+| `shadow/card`, `shadow/sheet` … | `--e-card`, `--e-sheet` … |
+
+**運用ルール**:
+- 値は Figma からコピーしやすい **hex / rgba** で書く（oklch にしない）
+- 半透明はアルファ付き hex か `rgba()`。`--surface-*` は「暗い地色に重ねる白」の前提
+- **コンポーネント側に色を直書きしない**。新しい色が必要になったらまずトークンを足す
+- カテゴリ色は CSS と `lib/task-design.ts` の両方にあるので、**必ず両方**更新する（§7.5）
+
+### 7.5 カテゴリ色・レベルの正本（`lib/task-design.ts`）
+以前はカテゴリ色が `TaskCard` / `TaskCardDetail` / `TaskCardCreate` / `HexagonStatus` の**4ファイル**に、`LEVELS` が2ファイルに重複していた。現在は `lib/task-design.ts` に一本化。
+
+- `CATEGORY_DESIGNS`: `key` / `label` / `hex` / `gradient` / `border` / `modalGradient` / `accent` / `image`
+- `categoryDesign(category)`: 大文字小文字を無視して引き、未知の値はフォールバックを返す
+  （DB の `category` は `varchar` なので型外の値が入り得る）
+- `LEVELS` / `inferLevel(points)`: 難易度とポイントの対応
+
+`hex` は SVG の `fill` など Tailwind クラスが使えない箇所用。`--category-*` と同じ値を保つ。
 
 ## 8. コーディングルール（このプロジェクトの作法）
 
@@ -206,7 +254,23 @@ Task
 - 1つのファイルに複数の責務を詰め込みすぎない。ファイルが肥大化してきたら分割を検討する。
 - 複数の画面やコンポーネントから使い回す可能性があるもの（UI部品、ユーティリティ関数、型定義、定数マップなど）は、早い段階で独立したファイル/コンポーネントに切り出す。
 - 目安: 1ファイル 200行を超えたら分割の候補。ただし無理に分けて読みにくくなるなら据え置きも可。
-- 例: モックデータ、カラーマップ（`CATEGORY_COLORS` 等）、フォーマット関数（`formatDeadline` 等）は共通 util に移せる候補。
+- カラーマップ（旧 `CATEGORY_COLORS` 等）は `lib/task-design.ts` に移設済み（§7.5）。
+- **残っている重複**: `MetaChip` / `SliderRow` / `Starburst` / 時間フォーマット関数が `TaskCardDetail` と `TaskCardCreate` に二重定義。リデザインでこれらの見た目が変わるタイミングで共通化する。
+
+### 8.6 モバイル（iOS Safari）で守る制約 ★リデザイン時は必読
+`docs/ai-error-log.md` に記録された**実機で起きた事故**の再発防止ルール。
+デスクトップでは問題が出ないため、破ると気付かないまま壊れる。
+
+- **`100vh` を使わない** → `100dvh`。`layout.tsx` の `viewportFit: "cover"` と、ボトムバーの `pb-[max(1rem,env(safe-area-inset-bottom))]` も維持する
+- **`touch-action: none`（Tailwind `touch-none`）を全画面要素に付けない** → タッチイベント自体が発火しなくなる。`manipulation` を使う。ドラッグハンドル等の小要素に限定するなら可
+- **ランタイム blur を常時描画しない** → 巨大な `blur-[120px]` や `backdrop-blur` の常用は避ける。背景は静的グラデーションで代替する
+- **タブルートの `page.tsx` に UI を置かない** → `return null` のスタブに保つ（§5.1）
+- **1回のタップ操作のハンドラ内で重い同期処理をしない** → 大量の `createElement`、`getBoundingClientRect`、`offsetWidth` は `requestAnimationFrame` に逃がす
+- **3D transform / SVG filter / blur / パーティクルを同時に多用しない** → 同時使用数の上限を決めておく
+- **`useEffect` 内で直接 DOM を操作する場合は `try-catch` で保護する**
+- タッチ操作やレイアウトに関わる変更をしたら、**必ず iOS 実機（またはデプロイ後のスマホ）で確認**する
+
+**新しいデザインを Figma で作るときの含意**: ガラス/グラスモーフィズムを多用するデザインは `backdrop-filter` が増えて iPhone で重くなる。半透明の面は「静的グラデーション + 半透明の白」で表現し、実 blur は使う場所を絞る。
 
 ### 8.4 型とバリデーション
 - Todoテキストは空白のみ禁止、最大長（例: 200）などの制約を設ける（実装時に確定）。
@@ -221,8 +285,27 @@ Task
 
 ## 9. 開発コマンド
 - `npm run dev`
-- `npm run lint`
+- `npm run lint` — **既知のエラー5件あり**（`GooeyNav` / `SpaceNavigator` / `TaskCarousel` の `react-hooks/refs` と `react-hooks/set-state-in-effect`）。新しく増やさないことを基準にする
 - `npm run build`
+- `npm run db:push` — Drizzle スキーマを Supabase に反映
+
+## 9.5 Figma 連携（design → code）
+
+**Figma ファイル**: `daily-app Redesign`
+https://www.figma.com/design/yp8EzSlzOom9KwycPKKSaD
+
+### 手順
+1. Figma でデザイン/トークンを作る。variables の命名は §7.4 の規約に合わせる
+2. 実装したい画面・コンポーネントの **node を選択した状態の URL**（`?node-id=...` 付き）を渡す
+3. Claude 側は `figma-design-to-code` スキルを読んでから `get_design_context` を呼ぶ
+   （スキルを飛ばすと、既存のトークンやコンポーネントを無視したコードが出る）
+4. トークンだけ先に取り込む場合は `get_variable_defs` → `global.css` の値を差し替える
+
+### 実装時の原則
+- Figma が返す生の値（`#ffffff0f` 等）を**そのままコンポーネントに書かない**。§7.4 の対応表に従ってトークンへ落とし、コンポーネントはユーティリティ（`bg-surface-2` 等）を使う
+- Figma のオートレイアウトは `flex` + `gap` に写す。要素ごとの margin で間隔を作らない
+- **§8.6 のモバイル制約が Figma のデザインより優先**。デザイン上 blur が多用されていたら、静的グラデーションでの代替を提案する
+- 画面の描画責務は SpaceNavigator にある（§5.1）。新しいタブ画面のデザインが来ても `page.tsx` は `return null` のまま
 
 ## 10. ドキュメント運用
 | ファイル | 役割 | AI の扱い |

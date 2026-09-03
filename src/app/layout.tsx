@@ -37,14 +37,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={cn("font-sans", geist.variable)}>
-      <body className="relative bg-slate-950 text-slate-50 overflow-hidden font-sans h-[100dvh]">
-        {/* 1) 最背面：固定の背景エフェクト（静的グラデーション） */}
+      <body className="relative bg-ground text-ink overflow-hidden font-sans h-[100dvh]">
+        {/* 1) 最背面：固定の背景エフェクト（静的グラデーション）
+         * 色は global.css の --aurora-1 / --aurora-2 が単一ソース */}
         <div
           className="absolute inset-0 z-0 pointer-events-none"
           style={{
             background: [
-              "radial-gradient(ellipse 60% 50% at 15% 15%, rgba(147,51,234,0.3) 0%, transparent 70%)",
-              "radial-gradient(ellipse 70% 60% at 85% 85%, rgba(37,99,235,0.2) 0%, transparent 70%)",
+              "radial-gradient(ellipse 60% 50% at 15% 15%, var(--aurora-1) 0%, transparent 70%)",
+              "radial-gradient(ellipse 70% 60% at 85% 85%, var(--aurora-2) 0%, transparent 70%)",
             ].join(", "),
           }}
         />

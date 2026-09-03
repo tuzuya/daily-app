@@ -132,7 +132,7 @@ const GooeyNav = ({
         
         particle.style.setProperty(
           "--color",
-          `var(--color-${particleData.color}, white)`
+          `var(--particle-${particleData.color}, white)`
         );
         particle.style.setProperty("--rotate", `${particleData.rotate}deg`);
 

@@ -1,16 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import type { Task, TaskCategory } from "@/types/task";
-
-const CATEGORIES: { key: TaskCategory; label: string; color: string }[] = [
-  { key: "routine", label: "Routine", color: "#f59e0b" },
-  { key: "health", label: "Health", color: "#10b981" },
-  { key: "physical", label: "Physical", color: "#3b82f6" },
-  { key: "knowledge", label: "Knowledge", color: "#8b5cf6" },
-  { key: "activity", label: "Activity", color: "#84cc16" },
-  { key: "creative", label: "Creative", color: "#ec4899" },
-];
+import type { Task } from "@/types/task";
+import { CATEGORY_DESIGNS } from "@/lib/task-design";
 
 const VERTEX_COUNT = 6;
 const CX = 150;
@@ -82,7 +74,7 @@ export default function HexagonStatus({ maxValue = 1000 }: Props) {
 
   const categoryStats = useMemo(() => {
     const doneTasks = tasks.filter((t) => t.done);
-    return CATEGORIES.map(({ key }) => {
+    return CATEGORY_DESIGNS.map(({ key }) => {
       const total = doneTasks
         .filter((t) => t.category === key)
         .reduce((sum, t) => sum + t.points, 0);
@@ -116,7 +108,7 @@ export default function HexagonStatus({ maxValue = 1000 }: Props) {
             />
           ))}
 
-          {CATEGORIES.map((_, i) => {
+          {CATEGORY_DESIGNS.map((_, i) => {
             const p = polarToCartesian(CX, CY, RADIUS, i);
             return (
               <line
@@ -151,7 +143,7 @@ export default function HexagonStatus({ maxValue = 1000 }: Props) {
             </>
           )}
 
-          {CATEGORIES.map((cat, i) => {
+          {CATEGORY_DESIGNS.map((cat, i) => {
             const labelR = RADIUS + 24;
             const p = polarToCartesian(CX, CY, labelR, i);
             const dotP = polarToCartesian(CX, CY, RADIUS + 8, i);
@@ -161,7 +153,7 @@ export default function HexagonStatus({ maxValue = 1000 }: Props) {
                   cx={dotP.x}
                   cy={dotP.y}
                   r="3"
-                  fill={cat.color}
+                  fill={cat.hex}
                   opacity="0.9"
                 />
                 <text
@@ -182,7 +174,7 @@ export default function HexagonStatus({ maxValue = 1000 }: Props) {
       {/* Category detail cards */}
       <div className="w-full grid grid-cols-2 gap-2.5 px-1">
         {categoryStats.map((stat, i) => {
-          const cat = CATEGORIES[i];
+          const cat = CATEGORY_DESIGNS[i];
           const pct = Math.min(stat.ratio * 100, 100);
           return (
             <div
@@ -192,7 +184,7 @@ export default function HexagonStatus({ maxValue = 1000 }: Props) {
               <div className="flex items-center gap-2 mb-1.5">
                 <div
                   className="h-2 w-2 rounded-full shrink-0"
-                  style={{ backgroundColor: cat.color }}
+                  style={{ backgroundColor: cat.hex }}
                 />
                 <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">
                   {cat.label}
@@ -211,7 +203,7 @@ export default function HexagonStatus({ maxValue = 1000 }: Props) {
                   className="h-full rounded-full transition-all duration-700 ease-out"
                   style={{
                     width: `${pct}%`,
-                    backgroundColor: cat.color,
+                    backgroundColor: cat.hex,
                     opacity: 0.7,
                   }}
                 />

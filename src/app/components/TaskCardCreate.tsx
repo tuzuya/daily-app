@@ -2,45 +2,12 @@
 
 import { useMemo, useRef, useState } from "react";
 import type { TaskCategory, TaskScreen } from "@/types/task";
-
-type Level = "easy" | "normal" | "hard" | "extra";
-
-const LEVELS: { value: Level; label: string; points: number }[] = [
-  { value: "easy", label: "Easy", points: 5 },
-  { value: "normal", label: "Normal", points: 10 },
-  { value: "hard", label: "Hard", points: 20 },
-  { value: "extra", label: "Extra", points: 30 },
-];
-
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  routine: "from-amber-600/60 via-orange-500/40 to-yellow-500/30",
-  health: "from-emerald-600/60 via-teal-500/40 to-cyan-600/30",
-  physical: "from-blue-600/60 via-indigo-500/40 to-violet-500/30",
-  knowledge: "from-violet-600/60 via-purple-500/40 to-fuchsia-500/30",
-  activity: "from-lime-600/60 via-green-500/40 to-emerald-500/30",
-  creative: "from-pink-600/60 via-rose-500/40 to-red-500/30",
-};
-
-const CATEGORY_ACCENTS: Record<string, string> = {
-  routine: "text-amber-300",
-  health: "text-emerald-300",
-  physical: "text-blue-300",
-  knowledge: "text-violet-300",
-  activity: "text-lime-300",
-  creative: "text-pink-300",
-};
-
-const DEFAULT_GRADIENT = "from-slate-600/60 via-slate-500/40 to-slate-400/30";
-const DEFAULT_ACCENT = "text-slate-300";
-
-const CATEGORIES: { value: TaskCategory; label: string }[] = [
-  { value: "routine", label: "Routine" },
-  { value: "health", label: "Health" },
-  { value: "physical", label: "Physical" },
-  { value: "knowledge", label: "Knowledge" },
-  { value: "activity", label: "Activity" },
-  { value: "creative", label: "Creative" },
-];
+import {
+  categoryDesign,
+  CATEGORY_DESIGNS,
+  LEVELS,
+  type Level,
+} from "@/lib/task-design";
 
 function Starburst({ className }: { className?: string }) {
   const lines = 18;
@@ -189,6 +156,7 @@ export default function TaskCardCreate({
   const titleRef = useRef<HTMLInputElement | null>(null);
 
   const estimate = formatEstimate(taskTimeToMinutes(taskTime) || undefined);
+  const design = categoryDesign(category);
 
   return (
     <div className="relative flex w-full max-w-sm flex-col overflow-hidden rounded-[26px] border border-white/10 shadow-[0_22px_70px_rgba(0,0,0,0.55)] max-h-[calc(100dvh-12rem)]">
@@ -196,7 +164,7 @@ export default function TaskCardCreate({
       <div
         className={[
           "absolute inset-0 bg-gradient-to-br opacity-70",
-          CATEGORY_GRADIENTS[category] ?? DEFAULT_GRADIENT,
+          design.modalGradient,
         ].join(" ")}
       />
       <div className="pointer-events-none absolute -top-[30%] -left-[20%] h-[70%] w-[70%] rounded-full bg-purple-500/25 blur-[40px]" />
@@ -252,7 +220,7 @@ export default function TaskCardCreate({
             <span
               className={[
                 "text-sm font-bold uppercase tracking-widest",
-                CATEGORY_ACCENTS[category] ?? DEFAULT_ACCENT,
+                design.accent,
               ].join(" ")}
             >
               {category}
@@ -412,16 +380,18 @@ export default function TaskCardCreate({
             </svg>
           }
           label="Category"
-          value={CATEGORIES.find((c) => c.value === category)?.label ?? category}
+          value={
+            CATEGORY_DESIGNS.find((c) => c.key === category)?.label ?? category
+          }
         >
           <div className="mt-2 flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => {
-              const active = c.value === category;
+            {CATEGORY_DESIGNS.map((c) => {
+              const active = c.key === category;
               return (
                 <button
-                  key={c.value}
+                  key={c.key}
                   type="button"
-                  onClick={() => setCategory(c.value)}
+                  onClick={() => setCategory(c.key)}
                   className={[
                     "rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors",
                     active

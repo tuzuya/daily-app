@@ -1,51 +1,7 @@
 "use client";
 
 import type { Task } from "@/types/task";
-
-const CATEGORY_COLORS: Record<string, { gradient: string; border: string }> = {
-  routine: {
-    gradient: "from-amber-400/80 to-orange-500/80",
-    border: "border-amber-400/25",
-  },
-  health: {
-    gradient: "from-emerald-400/80 to-teal-500/80",
-    border: "border-emerald-400/25",
-  },
-  physical: {
-    gradient: "from-blue-400/80 to-indigo-500/80",
-    border: "border-blue-400/25",
-  },
-  knowledge: {
-    gradient: "from-violet-400/80 to-purple-500/80",
-    border: "border-violet-400/25",
-  },
-  activity: {
-    gradient: "from-lime-400/80 to-green-500/80",
-    border: "border-lime-400/25",
-  },
-  creative: {
-    gradient: "from-pink-400/80 to-rose-500/80",
-    border: "border-pink-400/25",
-  },
-};
-
-const DEFAULT_COLOR = {
-  gradient: "from-slate-400/80 to-slate-500/80",
-  border: "border-slate-400/25",
-};
-
-const CATEGORY_IMAGES: Record<string, string> = {
-  routine: "/task-images/routine.png",
-  health: "/task-images/health.png",
-  physical: "/task-images/physical.png",
-  knowledge: "/task-images/knowledge.png",
-  activity: "/task-images/activity.png",
-  creative: "/task-images/creative.png",
-};
-
-function getCategoryColor(category: string) {
-  return CATEGORY_COLORS[category.toLowerCase()] ?? DEFAULT_COLOR;
-}
+import { categoryDesign } from "@/lib/task-design";
 
 function formatTaskTime(min?: number): string | null {
   if (!min || min <= 0) return null;
@@ -67,9 +23,8 @@ export type TaskCardProps = {
 };
 
 export default function TaskCard({ task, onPress }: TaskCardProps) {
-  const color = getCategoryColor(task.category);
-  const categoryKey = task.category.toLowerCase();
-  const imageSrc = CATEGORY_IMAGES[categoryKey];
+  const color = categoryDesign(task.category);
+  const imageSrc = color.image;
   const taskTimeText = formatTaskTime(task.estimatedMinutes);
 
   return (

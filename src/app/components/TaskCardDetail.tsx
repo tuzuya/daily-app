@@ -2,27 +2,7 @@
 
 import type { Task } from "@/types/task";
 import { useCallback, useMemo, useRef, useState } from "react";
-
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  routine: "from-amber-600/60 via-orange-500/40 to-yellow-500/30",
-  health: "from-emerald-600/60 via-teal-500/40 to-cyan-600/30",
-  physical: "from-blue-600/60 via-indigo-500/40 to-violet-500/30",
-  knowledge: "from-violet-600/60 via-purple-500/40 to-fuchsia-500/30",
-  activity: "from-lime-600/60 via-green-500/40 to-emerald-500/30",
-  creative: "from-pink-600/60 via-rose-500/40 to-red-500/30",
-};
-
-const CATEGORY_ACCENTS: Record<string, string> = {
-  routine: "text-amber-300",
-  health: "text-emerald-300",
-  physical: "text-blue-300",
-  knowledge: "text-violet-300",
-  activity: "text-lime-300",
-  creative: "text-pink-300",
-};
-
-const DEFAULT_GRADIENT = "from-slate-600/60 via-slate-500/40 to-slate-400/30";
-const DEFAULT_ACCENT = "text-slate-300";
+import { categoryDesign, inferLevel, LEVELS, type Level } from "@/lib/task-design";
 
 function Starburst({ className }: { className?: string }) {
   const lines = 18;
@@ -71,22 +51,6 @@ function formatEstimate(min?: number): string | null {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return m > 0 ? `${h}h ${m}min` : `${h}h`;
-}
-
-type Level = "easy" | "normal" | "hard" | "extra";
-
-const LEVELS: { value: Level; label: string; points: number }[] = [
-  { value: "easy", label: "Easy", points: 5 },
-  { value: "normal", label: "Normal", points: 10 },
-  { value: "hard", label: "Hard", points: 20 },
-  { value: "extra", label: "Extra", points: 30 },
-];
-
-function inferLevel(points: number): Level {
-  if (points >= 30) return "extra";
-  if (points >= 20) return "hard";
-  if (points >= 10) return "normal";
-  return "easy";
 }
 
 function minutesToTaskTime(min?: number): { d: number; h: number; m: number } {
@@ -145,6 +109,7 @@ export default function TaskCardDetail({ task, onClose, onMoveToToday }: TaskCar
   }, [task.id]);
 
   const estimate = formatEstimate(taskTimeToMinutes(taskTime) || undefined);
+  const design = categoryDesign(task.category);
 
   return (
     <div className="relative flex w-full max-w-md flex-col overflow-hidden rounded-[28px] border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.55)] max-h-[calc(100dvh-12rem)]">
@@ -153,7 +118,7 @@ export default function TaskCardDetail({ task, onClose, onMoveToToday }: TaskCar
       <div
         className={[
           "absolute inset-0 bg-gradient-to-br opacity-70",
-          CATEGORY_GRADIENTS[task.category.toLowerCase()] ?? DEFAULT_GRADIENT,
+          design.modalGradient,
         ].join(" ")}
       />
       <div className="pointer-events-none absolute -top-[30%] -left-[20%] h-[70%] w-[70%] rounded-full bg-purple-500/25 blur-[40px]" />
@@ -168,7 +133,7 @@ export default function TaskCardDetail({ task, onClose, onMoveToToday }: TaskCar
           <span
             className={[
               "text-sm font-bold uppercase tracking-widest",
-              CATEGORY_ACCENTS[task.category.toLowerCase()] ?? DEFAULT_ACCENT,
+              design.accent,
             ].join(" ")}
           >
             {task.category}

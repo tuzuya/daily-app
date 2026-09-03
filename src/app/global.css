@@ -4,121 +4,224 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.58 0.22 27);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-}
+/* ============================================================
+ * デザイントークン（Figma variables の着地点）
+ *
+ * このアプリはダーク専用。以前は shadcn のライト値が :root に、
+ * ダーク値が .dark に入っていたが、.dark はどこにも付与されて
+ * おらず実質未使用だった（見た目は layout.tsx の bg-slate-950
+ * 直書きで作られていた）。ここを実態に合わせ、:root をそのまま
+ * ダークパレットの単一ソースにしている。
+ *
+ * Figma でトークンが決まったら、下の値を差し替えるだけでよい。
+ * Figma の variable 名 ↔ ここの変数名 の対応は
+ * docs/explain/design-token-contract.md を参照。
+ * ============================================================ */
 
-.dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.87 0.00 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.371 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.809 0.105 251.813);
-    --chart-2: oklch(0.623 0.214 259.815);
-    --chart-3: oklch(0.546 0.245 262.881);
-    --chart-4: oklch(0.488 0.243 264.376);
-    --chart-5: oklch(0.424 0.199 265.638);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+:root {
+  /* --- 地色・背景演出 ------------------------------------- */
+  --ground: #020617;
+  /* layout.tsx の radial-gradient 2枚（オーロラ風の背景） */
+  --aurora-1: rgba(147, 51, 234, 0.3);
+  --aurora-2: rgba(37, 99, 235, 0.2);
+
+  /* --- ガラス面（暗い地色に重ねる半透明の白） ------------- */
+  --surface-1: rgba(255, 255, 255, 0.04); /* 控えめなパネル */
+  --surface-2: rgba(255, 255, 255, 0.06); /* カード・チップ（標準） */
+  --surface-3: rgba(255, 255, 255, 0.1); /* hover / 押下 */
+  --surface-4: rgba(255, 255, 255, 0.15); /* 選択中 */
+
+  /* --- 暗い面（モーダル・コントロール） ------------------- */
+  --veil: rgba(2, 6, 23, 0.8); /* モーダル本体 */
+  --veil-bar: rgba(2, 6, 23, 0.35); /* モーダル内の固定ヘッダ/フッタ */
+  --veil-panel: rgba(2, 6, 23, 0.7); /* ドロップダウン */
+  --control: rgba(15, 23, 42, 0.7); /* 丸ボタン（TopMenu） */
+  --field: rgba(0, 0, 0, 0.4); /* テキスト入力 */
+  --scrim: rgba(0, 0, 0, 0.7); /* モーダルの背面 */
+
+  /* --- 罫線 ----------------------------------------------- */
+  --line-faint: rgba(255, 255, 255, 0.08);
+  --line: rgba(255, 255, 255, 0.12);
+  --line-strong: rgba(255, 255, 255, 0.25);
+
+  /* --- 文字 ----------------------------------------------- */
+  --ink: #f8fafc;
+  --ink-soft: #e2e8f0;
+  --ink-muted: #94a3b8;
+  --ink-faint: #64748b;
+  --ink-inverse: #0f172a; /* 白いボタンの上の文字 */
+
+  /* --- 意味を持つ色 --------------------------------------- */
+  --success: #10b981; /* 完了 */
+  --danger: #f43f5e; /* エラー・Overdue */
+  --points: #fcd34d; /* ポイントの星 */
+
+  /* --- カテゴリ6色（lib/task-design.ts の hex と対応） ----- */
+  --category-routine: #f59e0b;
+  --category-health: #10b981;
+  --category-physical: #3b82f6;
+  --category-knowledge: #8b5cf6;
+  --category-activity: #84cc16;
+  --category-creative: #ec4899;
+
+  /* --- 角丸 ----------------------------------------------- */
+  --r-card: 14px; /* タスクカード */
+  --r-chip: 12px; /* メタ情報チップ */
+  --r-control: 16px; /* ボタン */
+  --r-sheet: 28px; /* モーダル */
+
+  /* --- 影 ------------------------------------------------- */
+  --e-card: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --e-card-hover: 0 12px 40px rgba(100, 60, 180, 0.25);
+  --e-control: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --e-panel: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --e-sheet: 0 24px 80px rgba(0, 0, 0, 0.55);
+
+  /* --- GooeyNav の粒子色（JS から var() で直接参照） ------
+   * GooeyNav.tsx が `var(--particle-N)` を組み立てて使う。
+   * Tailwind の --color-* 名前空間と衝突しないよう別名にしている。 */
+  --particle-1: #8e0096;
+  --particle-2: #8c1eff;
+  --particle-3: #8000a7;
+  --particle-4: #ffffff;
+
+  /* --- shadcn 互換トークン（上のパレットに委譲） ---------- */
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--veil);
+  --card-foreground: var(--ink);
+  --popover: var(--veil-panel);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--ink-inverse);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--surface-3);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--ink-muted);
+  --radius: 0.625rem;
+
+  --chart-1: var(--category-routine);
+  --chart-2: var(--category-health);
+  --chart-3: var(--category-physical);
+  --chart-4: var(--category-knowledge);
+  --chart-5: var(--category-activity);
+
+  --sidebar: var(--veil);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--ink-inverse);
+  --sidebar-accent: var(--surface-3);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--ink-muted);
 }
 
 @theme inline {
-    --font-sans: var(--font-sans);
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+  --font-sans: var(--font-sans);
+
+  /* アプリ固有トークン → Tailwind ユーティリティ
+   * 例: bg-surface-2 / text-ink-muted / border-line / rounded-card / shadow-sheet */
+  --color-ground: var(--ground);
+  --color-aurora-1: var(--aurora-1);
+  --color-aurora-2: var(--aurora-2);
+
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-4: var(--surface-4);
+
+  --color-veil: var(--veil);
+  --color-veil-bar: var(--veil-bar);
+  --color-veil-panel: var(--veil-panel);
+  --color-control: var(--control);
+  --color-field: var(--field);
+  --color-scrim: var(--scrim);
+
+  --color-line-faint: var(--line-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-ink-inverse: var(--ink-inverse);
+
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-points: var(--points);
+
+  --color-category-routine: var(--category-routine);
+  --color-category-health: var(--category-health);
+  --color-category-physical: var(--category-physical);
+  --color-category-knowledge: var(--category-knowledge);
+  --color-category-activity: var(--category-activity);
+  --color-category-creative: var(--category-creative);
+
+  --radius-card: var(--r-card);
+  --radius-chip: var(--r-chip);
+  --radius-control: var(--r-control);
+  --radius-sheet: var(--r-sheet);
+
+  --shadow-card: var(--e-card);
+  --shadow-card-hover: var(--e-card-hover);
+  --shadow-control: var(--e-control);
+  --shadow-panel: var(--e-panel);
+  --shadow-sheet: var(--e-sheet);
+
+  /* shadcn 互換 */
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
+  /* iOS Safari 対策: 100vh を使わない / 意図しないスクロールを止める
+   * 詳細は docs/ai-error-log.md（2026-03-11 の3件）を参照 */
   html {
     @apply font-sans;
     overflow: hidden;
@@ -126,124 +229,9 @@
     height: 100dvh;
     width: 100%;
     position: fixed;
-    }
+  }
   body {
     @apply bg-background text-foreground;
     overscroll-behavior: none;
-    }
-}
-
-@keyframes motivation-burst-from-right {
-  0% {
-    transform: translate3d(120%, 0, 0) skewX(-8deg);
-    opacity: 0;
   }
-
-  6% {
-    transform: translate3d(56%, 0, 0) skewX(-5deg);
-    opacity: 0.92;
-  }
-
-  12% {
-    transform: translate3d(28%, 0, 0) skewX(-2deg);
-    opacity: 1;
-  }
-
-  28% {
-    transform: translate3d(12%, 0, 0) skewX(-1deg);
-    opacity: 1;
-  }
-
-  46% {
-    transform: translate3d(2%, 0, 0) skewX(-0.6deg);
-    opacity: 1;
-  }
-
-  64% {
-    transform: translate3d(-4%, 0, 0) skewX(-0.3deg);
-    opacity: 1;
-  }
-
-  82% {
-    transform: translate3d(-8%, 0, 0) skewX(0deg);
-    opacity: 1;
-  }
-
-  90% {
-    transform: translate3d(-10%, 0, 0) skewX(0deg);
-    opacity: 1;
-  }
-
-  100% {
-    transform: translate3d(-130%, 0, 0) skewX(8deg);
-    opacity: 0;
-  }
-}
-
-@keyframes motivation-burst-from-left {
-  0% {
-    transform: translate3d(-120%, 0, 0) skewX(8deg);
-    opacity: 0;
-  }
-
-  6% {
-    transform: translate3d(-56%, 0, 0) skewX(5deg);
-    opacity: 0.92;
-  }
-
-  12% {
-    transform: translate3d(-28%, 0, 0) skewX(2deg);
-    opacity: 1;
-  }
-
-  28% {
-    transform: translate3d(-12%, 0, 0) skewX(1deg);
-    opacity: 1;
-  }
-
-  46% {
-    transform: translate3d(-2%, 0, 0) skewX(0.6deg);
-    opacity: 1;
-  }
-
-  64% {
-    transform: translate3d(4%, 0, 0) skewX(0.3deg);
-    opacity: 1;
-  }
-
-  82% {
-    transform: translate3d(8%, 0, 0) skewX(0deg);
-    opacity: 1;
-  }
-
-  90% {
-    transform: translate3d(10%, 0, 0) skewX(0deg);
-    opacity: 1;
-  }
-
-  100% {
-    transform: translate3d(130%, 0, 0) skewX(-8deg);
-    opacity: 0;
-  }
-}
-
-.motivation-burst {
-  will-change: transform, opacity;
-}
-
-.motivation-forward {
-  animation: motivation-burst-from-right 3.8s linear both;
-}
-
-.motivation-reverse {
-  animation: motivation-burst-from-left 3.8s linear both;
-}
-
-/* src/app/globals.css に追加 */
-:root {
-  /* React Bits オリジナルの美しいネオンパレット */
-  --color-1: #8e0096; /* ネオンピンク */
-  --color-2: #8c1eff; /* ネオンパープル */
-  --color-3: #8000a7; /* ネオンシアン */
-  --color-4: #ffffff; /* ピュアホワイト（レア） */
 }

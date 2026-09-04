@@ -97,63 +97,88 @@ Task
 ## 4. ルーティング（App Router）
 ディレクトリ: `src/app/`
 
-- `/today` → `src/app/today/page.tsx` — 当日のTodo（現状はプレースホルダー）
-- `/buffs` → `src/app/buffs/page.tsx` — 「Suggest」タブ相当（現状はプレースホルダー）
-- `/overdue` → `src/app/overdue/page.tsx` — 未達成タスク（現状はプレースホルダー）
-- `/next` → `src/app/next/page.tsx` — 作成済み（現状はプレースホルダー）
-- `/profile` → `src/app/profile/page.tsx` — プロフィール/設定（現状はプレースホルダー）
-- `/` → `src/app/page.tsx` — 現状はサンプル。将来は `/today` へリダイレクト/案内にする想定
+- `/today` → `src/app/today/page.tsx` — 当日のタスク（HOME）
+- `/next` → `src/app/next/page.tsx` — 今後やるタスクの一覧
+- `/overdue` → `src/app/overdue/page.tsx` — 未達成タスクの一覧
+- `/buffs` → `src/app/buffs/page.tsx` — AI提案タスクの一覧
+- `/profile` → `src/app/profile/page.tsx` — プロフィール/ステータス
+- `/` → `src/app/page.tsx` — `/today` へリダイレクト
+- `/login` → `src/app/login/page.tsx` — 未実装（見出しのみ）
 
-未作成:
-- `/login`（将来追加、ログイン→演出→`/today`）
+**各ページファイルが自分の画面を描画する。**
+リデザイン前は SpaceNavigator が描画を一元管理し、タブルートのページは
+`return null` のスタブだったが、その構成は廃止した（§5.1）。
 
-## 5. 画面レイアウト（レイヤー構成）
+## 5. 画面レイアウト
 ファイル: `src/app/layout.tsx`
 
-- **背景（最背面 z-0）**: オーロラ風の静的 radial-gradient 2枚（色は `--aurora-1` / `--aurora-2`）
-  - かつては `blur-[120px]` の巨大 blur だったが、モバイル負荷のため gradient に置換済み（`docs/ai-error-log.md` 参照）
-- **SpaceNavigator（z-10）**: タブ4画面を宇宙空間に同時配置し、カメラ移動で切り替える（後述）
-- **children フォールバック（z-5）**: SpaceNavigator 対象外のルート（`/profile` 等）は `FallbackMain` 経由で `children` を表示
-- **フローティングUI（z-50）**:
-  - 右上: `TopMenu`（三本線メニュー → Profile等）
-  - 下部: `GooeyNav`（タブナビ）
+- **背景（最背面 z-0）**: ピクセル調の色帯 + ディザリング（`docs/pixel-style-guide.md` §4.2）
+  - リデザイン前はオーロラ風の radial-gradient。さらにその前は `blur-[120px]` の
+    巨大 blur だったが、モバイル負荷のため段階的に置き換えられた（`docs/ai-error-log.md`）
+- **ページ内容（z-10）**: 各ルートの `page.tsx`
+- **下部ナビ（z-50）**: 4タブ（Today / Next / Overdue / Buffs）
+- **オーバーレイ（z-60）**: 詳細・作成モーダル、達成エフェクト（§5.2）
 
-### 5.1 SpaceNavigator（カメラ移動式ナビゲーション）
-ファイル: `src/app/components/SpaceNavigator.tsx`
+### 5.1 画面遷移は通常のルーティング ★リデザインで変更
 
-- **考え方**: 4つの画面（Today/Next/Overdue/Buffs）が宇宙空間に**常に同時描画**されている。タブを押すと、カメラ（`motion.div` の `x/y`）がスプリングアニメーションでその画面の位置まで移動する。
-- **座標マップ**: `src/app/components/page-space.ts` に各ルートの 2D 座標を定義。
-  - `/today`: `(0, 0)` — 中心
-  - `/next`: `(-1, 0.8)` — 左下
-  - `/overdue`: `(0, 1.3)` — 下
-  - `/buffs`: `(1, 0.8)` — 右下
-- **画面間の間隔**: viewport幅/高さの 180%（`SPACING = 1.8`）。画面同士が重ならないように余白を確保。
-- **`/` へのアクセス**: `src/app/page.tsx` で `/today` にリダイレクト。SpaceNavigator内でも `/` は `/today` 扱い。
-- **非タブルート**: SpaceNavigator は `null` を返し、`FallbackMain` が layout の `{children}` を表示する（`/profile` 等）。
-- **オフスクリーン最適化**: 非アクティブな画面の `div` には `content-visibility: auto` + `contain-intrinsic-size: 0 100dvh` を付与し、描画をブラウザにスキップさせている（モバイル負荷対策。変更時は必ず維持する）。
-- **タブルートのページファイル**: `today/page.tsx` 等は **`return null` のスタブ**。描画は SpaceNavigator が一元管理する。ここに UI を置くと iOS Safari がクラッシュする（`docs/ai-error-log.md` 参照）。
+**タブを押したら `router.push()` で普通に画面を切り替える。** それだけ。
+
+リデザイン前は `SpaceNavigator` が4画面を2次元空間に同時配置し、
+カメラをパンさせて切り替えていた（`page-space.ts` に座標を定義）。
+**この空間モデルは廃止した。**
+
+廃止に伴い、次が不要になる:
+
+| 対象 | 扱い |
+|---|---|
+| `src/app/components/SpaceNavigator.tsx` | 削除。描画は各 `page.tsx` へ戻す |
+| `src/app/components/page-space.ts` | 削除（座標マップ） |
+| `src/app/components/FallbackMain.tsx` | 削除（SpaceNavigator 対象外ルートを出すためだけの存在） |
+| フリックでの画面切り替え | 廃止。タブのみ |
+| `content-visibility` によるオフスクリーン最適化 | 不要（同時描画しなくなるため） |
+| `today/page.tsx` 等の `return null` スタブ | 解消。実内容を持たせる |
+
+**副次的な効果**: `docs/ai-error-log.md` に記録された iOS クラッシュの主因は
+「ページファイルの重複レンダリング」と「4画面同時描画の負荷」だった。
+どちらも構造的に消える。ただし §8.6 の他の制約（`100dvh`、`touch-action`、
+blur の常時描画）は引き続き守ること。
+
+`SpaceNavigator` 内にあったデータ取得（`useTasksForScreen`）と
+`moveToToday()` は、各ページまたは共通フックへ移す。ロジック自体は流用できる。
+
+### 5.2 オーバーレイ
+
+ルート遷移を伴わず、現在の画面の上に重ねる。
+
+| オーバーレイ | 開く操作 | 閉じる操作 |
+|---|---|---|
+| タスク詳細 | カード / 行をタップ | ✕ ・ 背景タップ |
+| タスク作成 | 「タスクを追加」 | ✕ ・ 背景タップ |
+| 達成エフェクト（FX） | カードを下にドラッグ | TAP TO CONTINUE |
+
+**達成エフェクトはルートを持たない。** Today の上に重なる状態であって、
+別の画面ではない。ルートにすると戻る操作で再表示できてしまう。
 
 ## 6. コンポーネント仕様
 
-### 6.1 GooeyNav（タブナビ）
-ファイル: `src/app/components/GooeyNav.tsx`
+### 6.1 下部ナビ ★リデザインで置き換え
 
-**仕様（挙動）**:
-- **ルート同期**: `usePathname()` で現在のパスを監視し、`items[].href` と一致するタブをアクティブ表示
-  - `href` は内部で正規化され、`"today"` でも `"/today"` でも最終的に `"/today"` 扱いになる
-- **遷移**: クリック/キーボード（Enter/Space）で `router.push()` する
-- **アニメーション**:
-  - pill（白いカプセル）が移動して、粒子が飛ぶ"グミ/スライム"風エフェクト
-  - `ResizeObserver` でリサイズ時にエフェクト位置を再計算
+**現行**: `src/app/components/GooeyNav.tsx` — SVGフィルタで液体風に融合する
+pill と粒子エフェクト。粒子色は `var(--particle-1..4)`。
 
-**Gooeyフィルタ（液体っぽさ）**:
-- `<filter id="gooey">` を定義し、`.effect.filter { filter: url("#gooey"); }` で適用
+**リデザイン後**: Figma の `NavItem/Pixel`（State: Active / Inactive）に置き換える。
+角丸なしの 87×48、3px 輪郭、アクティブは金地に反転。
+ピクセル調では滑らかな融合や粒子は使わないため、**Gooeyフィルタごと不要**になる。
+`--particle-1..4` トークンも合わせて削除できる。
 
-**粒子カラー（CSS変数依存）**:
-- 粒子色は `var(--particle-1..4)` を参照。`:root` に定義（`src/app/global.css`）
-- Tailwind v4 の `--color-*` 名前空間と衝突しないよう、`--color-1..4` から改名済み
+置き換え時に引き継ぐ挙動:
+- `usePathname()` でアクティブなタブを判定する
+- `href` の正規化（`"today"` でも `"/today"` でも `/today` 扱い）
+- クリックとキーボード（Enter / Space）の両方で `router.push()`
 
-**既知のlintエラー**: `setActiveIndex` を `useEffect` 内で同期的に呼ぶため `react-hooks/set-state-in-effect` が出る。ルート変化に追従するための実装で、動作はしている。リデザイン時に解消したい。
+**既知のlintエラー**: `setActiveIndex` を `useEffect` 内で同期的に呼ぶため
+`react-hooks/set-state-in-effect` が出る。置き換えで解消する
+（`usePathname()` から導出できるので `useState` 自体が不要）。
 
 ### 6.2 TaskCarousel / TaskCard / TaskCardDetail / TaskCardCreate
 - `TaskCarousel.tsx`: 3D遠近のカードカルーセル。ドラッグ・慣性スナップを自前実装（調整の詳細は `docs/explain/carousel-3d-depth-tuning.md`）
@@ -268,8 +293,8 @@ Figma の variables 名を下の規約で付けておけば、実装は `global.
 
 - **`100vh` を使わない** → `100dvh`。`layout.tsx` の `viewportFit: "cover"` と、ボトムバーの `pb-[max(1rem,env(safe-area-inset-bottom))]` も維持する
 - **`touch-action: none`（Tailwind `touch-none`）を全画面要素に付けない** → タッチイベント自体が発火しなくなる。`manipulation` を使う。ドラッグハンドル等の小要素に限定するなら可
-- **ランタイム blur を常時描画しない** → 巨大な `blur-[120px]` や `backdrop-blur` の常用は避ける。背景は静的グラデーションで代替する
-- **タブルートの `page.tsx` に UI を置かない** → `return null` のスタブに保つ（§5.1）
+- **ランタイム blur を常時描画しない** → 巨大な `blur-[120px]` や `backdrop-blur` の常用は避ける。背景は静的グラデーションかピクセルの色帯で代替する
+- ~~タブルートの `page.tsx` に UI を置かない~~ → **この制約は SpaceNavigator の廃止で解消**（§5.1）。ページは自分の画面を描画してよい
 - **1回のタップ操作のハンドラ内で重い同期処理をしない** → 大量の `createElement`、`getBoundingClientRect`、`offsetWidth` は `requestAnimationFrame` に逃がす
 - **3D transform / SVG filter / blur / パーティクルを同時に多用しない** → 同時使用数の上限を決めておく
 - **`useEffect` 内で直接 DOM を操作する場合は `try-catch` で保護する**
@@ -310,7 +335,8 @@ https://www.figma.com/design/yp8EzSlzOom9KwycPKKSaD
 - Figma が返す生の値（`#ffffff0f` 等）を**そのままコンポーネントに書かない**。§7.4 の対応表に従ってトークンへ落とし、コンポーネントはユーティリティ（`bg-surface-2` 等）を使う
 - Figma のオートレイアウトは `flex` + `gap` に写す。要素ごとの margin で間隔を作らない
 - **§8.6 のモバイル制約が Figma のデザインより優先**。デザイン上 blur が多用されていたら、静的グラデーションでの代替を提案する
-- 画面の描画責務は SpaceNavigator にある（§5.1）。新しいタブ画面のデザインが来ても `page.tsx` は `return null` のまま
+- 画面の描画責務は各 `page.tsx` にある（§5.1）。詳細・作成・達成エフェクトは
+  ルートを持たないオーバーレイとして実装する（§5.2）
 
 ## 10. ドキュメント運用
 | ファイル | 役割 | AI の扱い |

@@ -362,9 +362,11 @@ Silkscreen で `INTELLIGENCE` は約84px あり**文字が入らない**。
 | Overdue | `danger` | まだ終わっていないこと | えらんで Today に戻す |
 | Buffs | `gold` | 今日をちょっと良くする | えらんで Today に追加する |
 
-「Today に持ってくる」操作はコード側に既にある
-（`src/app/components/SpaceNavigator.tsx` の `moveToToday()` が
-`PATCH /api/tasks/:id` に `{ screen: "today" }` を送る）。
+「Today に持ってくる」処理はコード側に既にある。現状は
+`src/app/components/SpaceNavigator.tsx` の `moveToToday()` が
+`PATCH /api/tasks/:id` に `{ screen: "today" }` を送っている。
+SpaceNavigator は廃止するが（`docs/ai-dev-guide.md` §5.1）、
+**この関数の中身はそのまま移設して使える**。
 
 ### 9.5 Figma のコンポーネント一覧
 
@@ -373,6 +375,57 @@ Silkscreen で `INTELLIGENCE` は約84px あり**文字が入らない**。
 | `TaskCard/Pixel` | HOME のカルーセル用（Category 5バリアント） |
 | `CardRow/Pixel` | 一覧の行 |
 | `NavItem/Pixel` | 下部ナビのタブ（State: Active / Inactive） |
+
+---
+
+## 10. 画面遷移とオーバーレイ
+
+### 10.1 遷移は2層
+
+| 層 | 対象 | 挙動 |
+|---|---|---|
+| **ルート** | Today / Next / Overdue / Buffs / Profile | 下部タブで `router.push()`。**普通の画面切り替え** |
+| **オーバーレイ** | タスク詳細 / タスク作成 / 達成エフェクト | 現在の画面の上に重なる。**ルートを持たない** |
+
+**空間モデル（カメラ移動・フリック遷移）は廃止した。**
+`docs/ai-dev-guide.md` §5.1 に廃止対象のファイル一覧がある。
+
+### 10.2 画面ごとのアクション
+
+**HOME (Today)**
+
+| 操作 | 結果 |
+|---|---|
+| カードを横にドラッグ | 隣のカードへ（慣性スナップ） |
+| 中央のカードをタップ | 詳細オーバーレイ |
+| **カードを下にドラッグ** | 達成 → 達成エフェクト（§8.2） |
+| 「タスクを追加」 | 作成オーバーレイ |
+| 下部タブ | 各画面へ |
+| ☰ | Profile へ |
+
+**達成エフェクト (FX)**
+
+| 操作 | 結果 |
+|---|---|
+| TAP TO CONTINUE | Today へ戻る。カードが1枚減り EXP が増えた状態 |
+
+**一覧 (Next / Overdue / Buffs)**
+
+| 操作 | 結果 |
+|---|---|
+| カテゴリタブ | 一覧を絞り込む |
+| 行をタップ | 詳細オーバーレイ |
+| 詳細の「Today へ送る」 | `screen` を `today` に更新して Today へ |
+
+### 10.3 オーバーレイの見せ方
+
+ピクセル調を保つため、以下を守る:
+
+- **背景の暗幕に blur をかけない**。`--scrim`（黒 70%）のベタ塗りのみ
+- モーダルは 3px 輪郭 + ベベル（§4.1）。角丸なし
+- 出現は**下からせり上がる**。`EASE_OUT_BACK` で軽く行き過ぎてから収まる
+- 閉じるときは逆再生でよい（`EASE_IN`）
+- **フェードで薄く消さない**。透明度を使うなら `HOLD` で一段階（§8.1）
 
 既存の `TaskCarousel.tsx` は framer-motion の `drag` とスプリングを自前調整済みなので、
 ドラッグ検知はそれを流用し、**下方向のドラッグでドロップ枠に入れる**分岐を追加する形になる。

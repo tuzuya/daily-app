@@ -181,6 +181,11 @@ Task
 
 ## 7. デザイントークン（正本: `src/app/global.css`）
 
+> **リデザイン進行中**: ピクセルゲーム調への変更を進めている。
+> 1アートピクセル=3px、枠線3px、角丸0、6px刻みの余白、ディザリング、書体の役割分担などの
+> **再現可能な規則は `docs/pixel-style-guide.md` が正本**。
+> 下記 §7.2〜7.5 は現行（リデザイン前）のトークン層の仕様。
+
 ### 7.1 Tailwind/shadcnのベース
 - `@import "tailwindcss";`
 - `@import "tw-animate-css";`
@@ -313,6 +318,8 @@ https://www.figma.com/design/yp8EzSlzOom9KwycPKKSaD
 | `docs/ai-dev-guide.md`（このファイル） | HOW: 技術・アーキテクチャ・コード仕様 | **コード編集・機能/UIの検討のたびに参照する正本**（下記「エージェント共通」） |
 | `docs/ai-product-brief.md` | WHAT: プロダクト仕様・要件・ロードマップ | **WHAT に触れるとき**、または**ユーザーがパス・`@` で明示したとき**に Read。編集は要件変更時のみ |
 | `docs/ai-error-log.md` | エラー/事故ログ（再発防止） | 必要時に参照・追記 |
+| `docs/pixel-style-guide.md` | ピクセルスタイルの再現可能な規則（寸法・パレット・書体・パーツの作り方・カテゴリ5種） | **ピクセルUIを足す/直すたびに参照する正本**。Figma と CSS の両方の値を持つ |
+| `docs/design-refs/` | デザイン参考画像（ユーザーが置く） | 指示があったときに読む。命名規則は同ディレクトリの README |
 | `docs/explain/` | 特定実装の詳細解説（ユーザーが読む資料） | ユーザー指示時のみ読む・書く。自動では追加しない |
 
 ### エージェント共通（Cursor / Claude Code）

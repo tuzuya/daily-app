@@ -431,7 +431,7 @@ SpaceNavigator は廃止するが（`docs/ai-dev-guide.md` §5.1）、
 
 ### 10.4 オーバーレイの中身
 
-**`Overlay/Detail`（354×468、Source: List / Today）**
+**`Overlay/Detail`（Source: List = 354×540 / Today = 354×468）**
 
 | 位置 | 要素 |
 |---|---|
@@ -441,12 +441,25 @@ SpaceNavigator は廃止するが（`docs/ai-dev-guide.md` §5.1）、
 | (12, 102) | 説明（body-jp） |
 | (12, 190) | LEVEL チップ 4つ（78×42、pitch 84） |
 | (12, 266) / (12, 314) | TASK TIME のステッパー（時間 / 分） |
-| (12, 390) 330×60 | フッターのアクション |
+| (12, 390) 330×60 | 主アクション（`List` のみ）／ 削除（`Today`） |
+| (12, 462) 330×60 | 削除（`List` のみ） |
 
-| Source | フッター | 対応するAPI |
+**削除はどの画面から開いても常にある。** カードは自分自身を削除する手段を
+持つべきで、それが Today からしか使えないのは誤り（2026-09-05 に修正）。
+
+フッターの構成:
+
+| Source | 主アクション | 削除 |
 |---|---|---|
-| `List` | 「Today へ送る」金ボタン | `PATCH /api/tasks/:id` `{ screen: "today" }` |
-| `Today` | 「削除する」赤の輪郭ボタン | `DELETE /api/tasks/:id` |
+| `List` | 「Today へ送る」金ボタン（y=390） | **常にある**（y=462） |
+| `Today` | なし（完了はドラッグ） | **常にある**（y=390） |
+
+- 主アクション → `PATCH /api/tasks/:id` `{ screen: "today" }`
+- 削除 → `DELETE /api/tasks/:id`
+
+**削除は必ずフッターの最下段**に置き、`delete/button` / `delete/text` という
+同じ名前で持つ。位置は主アクションの有無でずれるが、
+「最後の要素が削除」という関係は変わらない。
 
 **所要時間はスライダーではなくステッパー**（◀ 値 ▶）。
 現行コードは Days / Hours / Min の3スライダーだが、つまみのある
@@ -455,8 +468,8 @@ SpaceNavigator は廃止するが（`docs/ai-dev-guide.md` §5.1）、
 想定外のため）。`estimatedMinutes` の型は変わらない。
 
 **削除の導線をここに置いた理由**: `DELETE /api/tasks/:id` は実装済みだが
-UI が無かった（`docs/ai-product-brief.md` §7）。完了はドラッグで行うので、
-Today の詳細に残る破壊的操作は削除だけになる。
+UI が無かった（`docs/ai-product-brief.md` §7）。タスクの詳細は、そのタスクに
+対してできることが集まる場所なので、削除もここに属する。
 押し間違いを避けるため、ベベルを付けず「押したくなる見た目」にしていない。
 
 **`Overlay/Create`（354×636）**

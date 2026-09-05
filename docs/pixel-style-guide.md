@@ -435,7 +435,7 @@ SpaceNavigator は廃止するが（`docs/ai-dev-guide.md` §5.1）、
 
 | 位置 | 要素 |
 |---|---|
-| (3, 6) 348×42 | カテゴリ帯。`Overlay/Create` では金地の `NEW QUEST` |
+| (3, 6) 348×42 | カテゴリ帯。`Overlay/Form` では金地の `NEW QUEST` / `EDIT QUEST` |
 | (312, 12) 30×30 | 閉じる ✕ |
 | (12, 66) | タイトル（heading-jp） |
 | (12, 102) | 説明（body-jp） |

@@ -102,8 +102,9 @@ Task
 - `/overdue` → `src/app/overdue/page.tsx` — 未達成タスクの一覧
 - `/buffs` → `src/app/buffs/page.tsx` — AI提案タスクの一覧
 - `/profile` → `src/app/profile/page.tsx` — プロフィール/ステータス
-- `/` → `src/app/page.tsx` — `/today` へリダイレクト
 - `/login` → `src/app/login/page.tsx` — 未実装（見出しのみ）
+- `/` → **存在しない。`src/app/page.tsx` が無いため 404 になる**
+  （`/today` へのリダイレクトを置く必要がある）
 
 **各ページファイルが自分の画面を描画する。**
 リデザイン前は SpaceNavigator が描画を一元管理し、タブルートのページは

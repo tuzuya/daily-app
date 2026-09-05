@@ -375,6 +375,8 @@ SpaceNavigator は廃止するが（`docs/ai-dev-guide.md` §5.1）、
 | `TaskCard/Pixel` | HOME のカルーセル用（Category 5バリアント） |
 | `CardRow/Pixel` | 一覧の行 |
 | `NavItem/Pixel` | 下部ナビのタブ（State: Active / Inactive） |
+| `Overlay/Detail` | タスク詳細（Source: List / Today） |
+| `Overlay/Create` | タスク作成 |
 
 ---
 
@@ -426,6 +428,53 @@ SpaceNavigator は廃止するが（`docs/ai-dev-guide.md` §5.1）、
 - 出現は**下からせり上がる**。`EASE_OUT_BACK` で軽く行き過ぎてから収まる
 - 閉じるときは逆再生でよい（`EASE_IN`）
 - **フェードで薄く消さない**。透明度を使うなら `HOLD` で一段階（§8.1）
+
+### 10.4 オーバーレイの中身
+
+**`Overlay/Detail`（354×468、Source: List / Today）**
+
+| 位置 | 要素 |
+|---|---|
+| (3, 6) 348×42 | カテゴリ帯。`Overlay/Create` では金地の `NEW QUEST` |
+| (312, 12) 30×30 | 閉じる ✕ |
+| (12, 66) | タイトル（heading-jp） |
+| (12, 102) | 説明（body-jp） |
+| (12, 190) | LEVEL チップ 4つ（78×42、pitch 84） |
+| (12, 266) / (12, 314) | TASK TIME のステッパー（時間 / 分） |
+| (12, 390) 330×60 | フッターのアクション |
+
+| Source | フッター | 対応するAPI |
+|---|---|---|
+| `List` | 「Today へ送る」金ボタン | `PATCH /api/tasks/:id` `{ screen: "today" }` |
+| `Today` | 「削除する」赤の輪郭ボタン | `DELETE /api/tasks/:id` |
+
+**所要時間はスライダーではなくステッパー**（◀ 値 ▶）。
+現行コードは Days / Hours / Min の3スライダーだが、つまみのある
+スライダーはピクセル調に合わない。RPGメニュー風のステッパーに置き換える。
+**Days は廃止**し 時間 / 分 の2軸にした（1日を超えるタスクは日次アプリの
+想定外のため）。`estimatedMinutes` の型は変わらない。
+
+**削除の導線をここに置いた理由**: `DELETE /api/tasks/:id` は実装済みだが
+UI が無かった（`docs/ai-product-brief.md` §7）。完了はドラッグで行うので、
+Today の詳細に残る破壊的操作は削除だけになる。
+押し間違いを避けるため、ベベルを付けず「押したくなる見た目」にしていない。
+
+**`Overlay/Create`（354×636）**
+詳細と同じ骨格。違いは次の3点だけ。
+- ヘッダーが金地の `NEW QUEST`
+- タイトル / メモが入力欄（`--field` 塗り + 3px 輪郭）
+- **CATEGORY の選択行**（60×48 のアイコンボタン5つ、pitch 66）
+
+### 10.5 エントリポイント
+
+| 操作 | 場所 | 開くもの |
+|---|---|---|
+| ＋ ボタン | HOME 上部バー (288, 52) 36×36 | `Overlay/Create` |
+| カードをタップ | HOME のカルーセル中央 | `Overlay/Detail` (Source=Today) |
+| 行をタップ | 一覧3画面 | `Overlay/Detail` (Source=List) |
+
+**ドラッグ操作は Today のカードだけに使う。** 一覧では使わない
+（世界観に合わないため。決定: 2026-09-05）。
 
 既存の `TaskCarousel.tsx` は framer-motion の `drag` とスプリングを自前調整済みなので、
 ドラッグ検知はそれを流用し、**下方向のドラッグでドロップ枠に入れる**分岐を追加する形になる。

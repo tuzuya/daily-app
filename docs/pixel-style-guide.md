@@ -375,8 +375,8 @@ SpaceNavigator は廃止するが（`docs/ai-dev-guide.md` §5.1）、
 | `TaskCard/Pixel` | HOME のカルーセル用（Category 5バリアント） |
 | `CardRow/Pixel` | 一覧の行 |
 | `NavItem/Pixel` | 下部ナビのタブ（State: Active / Inactive） |
-| `Overlay/Detail` | タスク詳細（Source: List / Today） |
-| `Overlay/Create` | タスク作成 |
+| `Overlay/Detail` | タスク詳細・閲覧（Source: List / Today） |
+| `Overlay/Form` | タスクの入力（Mode: Create / Edit） |
 
 ---
 
@@ -472,19 +472,55 @@ UI が無かった（`docs/ai-product-brief.md` §7）。タスクの詳細は�
 対してできることが集まる場所なので、削除もここに属する。
 押し間違いを避けるため、ベベルを付けず「押したくなる見た目」にしていない。
 
-**`Overlay/Create`（354×636）**
-詳細と同じ骨格。違いは次の3点だけ。
-- ヘッダーが金地の `NEW QUEST`
+**`Overlay/Form`（354×636、Mode: Create / Edit）**
+
+作成と編集は骨格が同じなので1つのコンポーネントにまとめた。
+詳細（`Overlay/Detail`）との違いは次の3点。
+
+- ヘッダーが金地（`NEW QUEST` / `EDIT QUEST`）
 - タイトル / メモが入力欄（`--field` 塗り + 3px 輪郭）
 - **CATEGORY の選択行**（60×48 のアイコンボタン5つ、pitch 66）
+
+| Mode | 中身 | フッター | API |
+|---|---|---|---|
+| `Create` | プレースホルダー表示 | 「クエストを追加」 | `POST /api/tasks` |
+| `Edit` | 既存の値が入った状態 | 「保存する」 | `PATCH /api/tasks/:id` |
+
+**取り消しはヘッダーの ✕。** キャンセル用のボタンは置かない
+（✕ が既にその役割を持っているため、2つあると迷う）。
+
+**編集中は削除を出さない。** 削除は詳細（`Overlay/Detail`）に戻ってから行う。
+編集の途中で破壊的操作が並ぶと押し間違いが起きやすいため。
+
+### 10.4.1 閲覧と編集の関係
+
+タスクの詳細は **閲覧** と **編集** の2段階に分かれる。
+
+```
+一覧の行 / Todayのカードをタップ
+        ↓
+  Overlay/Detail（閲覧）
+   ├ Level・所要時間はここで直接変更できる
+   ├ ✎ ボタン ────→ Overlay/Form (Mode=Edit)
+   │                    └ 保存する / ✕ で詳細へ戻る
+   ├ Today へ送る（List のときだけ）
+   └ 削除する
+```
+
+**Level と所要時間だけは閲覧の状態から直接変更できる**（チップとステッパー）。
+値を選ぶだけで文字入力を伴わないため、編集モードに入る必要がない。
+**タイトル・メモ・カテゴリの変更には編集モードが要る。**
+
+`Overlay/Detail` のヘッダーには ✎（276, 12）と ✕（312, 12）が並ぶ。
 
 ### 10.5 エントリポイント
 
 | 操作 | 場所 | 開くもの |
 |---|---|---|
-| ＋ ボタン | HOME 上部バー (288, 52) 36×36 | `Overlay/Create` |
+| ＋ ボタン | HOME 上部バー (288, 52) 36×36 | `Overlay/Form` (Mode=Create) |
 | カードをタップ | HOME のカルーセル中央 | `Overlay/Detail` (Source=Today) |
 | 行をタップ | 一覧3画面 | `Overlay/Detail` (Source=List) |
+| ✎ ボタン | 詳細のヘッダー (276, 12) 30×30 | `Overlay/Form` (Mode=Edit) |
 
 **ドラッグ操作は Today のカードだけに使う。** 一覧では使わない
 （世界観に合わないため。決定: 2026-09-05）。

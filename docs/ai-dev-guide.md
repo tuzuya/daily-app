@@ -10,13 +10,20 @@
 - **Language**: TypeScript
 - **UI**: Tailwind CSS v4
 - **UI utilities**: shadcn, Radix関連, Headless UI
-- **バックエンドAPI**: Hono + Cloudflare Workers
-- **DB / 認証 (BaaS)**: Supabase（PostgreSQL + Auth）
+- **バックエンドAPI**: **Next.js Route Handlers**（`src/app/api/**/route.ts`）
+- **DB**: Supabase PostgreSQL — **`postgres-js` で直接接続しているだけで、
+  Supabase の Auth / Storage / Realtime は一つも使っていない**（`@supabase/supabase-js` 未導入）。
+  そのためロックインは実質ゼロで、**Neon への乗り換えを検討中**（`docs/backend-implementation-plan.md` §4）
+- **認証**: **未実装かつ方針も未決。** 以前は「Supabase Auth を使う」前提だったが、
+  DB 乗り換えの検討でこの前提が崩れた。実装する前に方針を決めること
 - **ORM**: Drizzle ORM
-- **型安全**: Hono RPC による End-to-End Type Safety
 - **Lint**: ESLint
 - **Runtime**: Node.js（npm / `package-lock.json` あり）
-- **デプロイ**: Vercel（フロント）, Cloudflare Workers（API）
+- **デプロイ**: Vercel（フロント・API まとめて）
+
+> **Hono + Cloudflare Workers は「将来やるかもしれない案」であって、現在の構成ではない。**
+> Workers から Supabase に繋ぐのに Hyperdrive 等の追加構成が要り環境依存が大きかったため、
+> API は Next.js 側に置く判断をした（経緯: `docs/backend-implementation-plan.md`）。
 
 ## 2. リポジトリの主要ディレクトリ
 - `src/`: フロントエンド（Next.js アプリ本体）
@@ -31,8 +38,8 @@
 - `types/`: 型定義（`types/task.ts`）
 - `docs/`: 仕様・調整ガイド・運用ドキュメント（AI 向け正本は §10）
 - `CLAUDE.md`（リポジトリ直下）: Claude Code 用。`@docs/*.md` で §10 の正本をインポート（本文は `docs/` に置かない）
-- （バックエンド）: Hono + Cloudflare Workers の配置はプロジェクト構成に合わせて追加（例: `api/` または別リポジトリ）
-- （スキーマ）: Drizzle スキーマ定義（配置はプロジェクトに合わせて）
+- `docs/explain/`: 特定実装の詳細解説。**旧デザイン時代のものが混ざっている**ので、
+  現在の指針として読まない（各ファイル冒頭の注記を見る）
 
 ## 3. アーキテクチャ / データモデル
 
@@ -43,12 +50,16 @@
 - **選定理由**: React/Next.js のエコシステムを最大限活用するため。Vercelは個人開発のテスト環境から将来のWeb一般公開（本番）までシームレスにスケール可能で、移行の手間がないため。
 
 **バックエンド API**
-- **技術**: Hono + Cloudflare Workers
-- **選定理由**: フロントエンド（UI）とバックエンド（データ処理）を分離するモダンで実務的なアーキテクチャを学ぶため。Cloudflareのエッジ環境で極限まで軽量かつ高速なAPIレスポンスを実現するため。Hono RPC でフロント・バック間の End-to-End 型安全を確保し、開発体験を向上させるため。
+- **技術**: Next.js Route Handlers（`src/app/api/**/route.ts`）
+- **選定理由**: 当初は Hono + Cloudflare Workers への分離を狙ったが、Workers から Supabase(PostgreSQL) に接続するには Hyperdrive 等が必要で環境依存が大きかった。まず Next.js 内に API 層を置いて CRUD を通し、デプロイも Vercel にまとめる形にした。将来 Workers へ切り出す場合は、同じインターフェースを写して fetch 先を変える。
 
 **データベース & 認証 (BaaS)**
 - **技術**: Supabase (PostgreSQL)
-- **選定理由**: Todo、ユーザー、タグなどのリレーショナルデータとPostgreSQLの相性が良いため。認証（Supabase Auth）が内包され、友人共有時のセキュアなログインを容易に実装できるため。無料枠が広く、コストを抑えつつスケール可能なため。
+- **選定理由（当時）**: Todo、ユーザー、タグなどのリレーショナルデータとPostgreSQLの相性が良いため。認証（Supabase Auth）が内包され、友人共有時のセキュアなログインを容易に実装できるため。無料枠が広く、コストを抑えつつスケール可能なため。
+- **その後（2026-09-05）**: 実際には **Supabase Auth を使わないまま**、`postgres-js` で
+  Postgres に直接繋ぐ形になった。つまり選定理由のうち「認証が内包される」は**効いていない**。
+  加えて無料枠は1週間の無操作で休止するため、**Neon への乗り換えを検討中**
+  （`docs/backend-implementation-plan.md` §4）。
 
 **ORM**
 - **技術**: Drizzle ORM
@@ -56,7 +67,7 @@
 
 ### 3.2 リクエストフロー
 ```
-ブラウザ (Next.js) → Hono API (Cloudflare Workers) → Drizzle ORM → Supabase PostgreSQL
+ブラウザ (Next.js) → Route Handlers (/api/tasks) → Drizzle ORM → Supabase PostgreSQL
 ```
 
 ### 3.3 データモデル（Drizzle スキーマ想定）
@@ -64,7 +75,9 @@
 Task
   id:               String (UUID, PK)
   title:            String
-  category:         String          // "routine" | "health" | "physical" | "knowledge" | "activity" | "creative"
+  category:         String          // 現在のコード: "routine" | "health" | "physical" | "knowledge" | "activity" | "creative"（旧6種）
+                                    // 変更予定: "vitality" | "intelligence" | "creative" | "recovery" | "quest"（新5種）
+                                    // 一括変更の影響範囲は docs/pixel-style-guide.md §7
   points:           Int (default 0)
   done:             Boolean (default false)
   description:      String?
@@ -76,21 +89,48 @@ Task
   updatedAt:        DateTime (auto)
 ```
 
+**現状は `tasks` テーブル1つだけ**（`lib/db/schema.ts`）。
+`userId` カラムは将来の認証用に空けてあるが、`users` テーブルは存在しない。
+
+#### 追加が必要なカラム（未実装 / 2026-09-05 決定）
+
+```
+todayDate:   varchar(10)?   // Today に置いた日 YYYY-MM-DD。必ずローカル日付（§8.2）
+completedAt: timestamp?     // 達成した瞬間
+```
+
+この2つが無いと、**日跨ぎの仕分け（`ai-product-brief.md` §4.6）も
+ふりかえり（同 §4.3）も実装できない**。`createdAt` は「作った日」であって
+「どの日の Today に置かれたか」ではないため代用できない。
+
+追加後の各画面の条件:
+
+| 画面 | 条件 |
+|---|---|
+| Today | `todayDate = 今日` かつ `done = false` |
+| 日跨ぎの仕分け対象 | `todayDate < 今日` かつ `done = false` |
+| 今日の達成 | `done = true` かつ `completedAt` が今日 |
+
+**`GET /api/tasks?screen=today` は `done = false` で絞る必要がある。**
+現在は絞っていないため、達成してリロードすると Today に戻ってくる。
+
 - **DayLog**（将来追加予定）
   - date: YYYY-MM-DD
   - note: string（当日の自由メモ）
   - mood?: 1..5 / string（任意）
 
-### 3.4 構築ステップ
+- **LV / EXP / コイン**: **未決**。Figma は表示しているが供給元が無い。
+  集計で出すか `users` テーブルを持つか（`ai-product-brief.md` §7.1 (c)）
+
+### 3.4 構築ステップ（完了済み）
 1. Supabase プロジェクト作成 + 接続URL取得（手動）
-2. Hono + Cloudflare Workers プロジェクト構築
-3. Drizzle 導入 + スキーマ定義 + マイグレーション
-4. Hono RPC 設定（フロント・バック間の型共有）
-5. Next.js 側から Hono API を呼び出し（モックデータ → API経由に差し替え）
-6. Vercel（フロント）・Cloudflare Workers（バック）環境変数設定
+2. Drizzle 導入 + スキーマ定義（`lib/db/schema.ts`）+ マイグレーション
+3. Route Handlers 実装（`GET/POST /api/tasks`、`PATCH/DELETE /api/tasks/[id]`）
+4. フロントから `fetch("/api/tasks")` で取得（モックデータは撤去済み）
+5. Vercel の環境変数に `DATABASE_URL` を設定
 
 ### 3.5 データ永続化ルール
-- UI → Hono API (Cloudflare Workers) → Drizzle → Supabase DB の流れを守る。
+- UI → Route Handlers (`/api/tasks`) → Drizzle → Supabase DB の流れを守る。
 - フロントエンドが直接DBを触る実装は避け、必ずバックエンド API 経由にする。
 - バックエンドの `.env` に Supabase 接続情報（`DATABASE_URL` 等）を設定する。
 
@@ -202,7 +242,7 @@ pill と粒子エフェクト。粒子色は `var(--particle-1..4)`。
 
 - `GlassSurface.jsx` — §6.4 で「重複をどちらに寄せるか決める」としていたが、実際には両方とも未使用だったため削除で解決
 - `ScrollingText.tsx` — 連動していた `motivation-*` keyframes も `global.css` から削除。
-  そのため `docs/explain/scrolling-text-tuning.md` は**現存しない実装の解説**になっている
+  解説だった `docs/explain/scrolling-text-tuning.md` も削除済み
 - `SpaciousButton.tsx` / `MockTodoCard.tsx` / `PageTransition.tsx`
 
 ## 7. デザイントークン（正本: `src/app/global.css`）
@@ -301,7 +341,11 @@ Figma の variables 名を下の規約で付けておけば、実装は `global.
 - **`useEffect` 内で直接 DOM を操作する場合は `try-catch` で保護する**
 - タッチ操作やレイアウトに関わる変更をしたら、**必ず iOS 実機（またはデプロイ後のスマホ）で確認**する
 
-**新しいデザインを Figma で作るときの含意**: ガラス/グラスモーフィズムを多用するデザインは `backdrop-filter` が増えて iPhone で重くなる。半透明の面は「静的グラデーション + 半透明の白」で表現し、実 blur は使う場所を絞る。
+**ピクセル調ではこの制約が自動的に満たされる**: `docs/pixel-style-guide.md` §1 が
+blur / backdrop-filter / グラデーション / ぼかし影を**すべて禁止**しているため、
+規則どおりに作れば上の重い表現は最初から出てこない。
+逆に言うと、**ガラス/グラスモーフィズム風の案が出てきたら、それは旧デザインの発想**なので
+ピクセルスタイルガイドの表現（ベベル・ディザリング・単色のずらし矩形）に置き換える。
 
 ### 8.4 型とバリデーション
 - Todoテキストは空白のみ禁止、最大長（例: 200）などの制約を設ける（実装時に確定）。
@@ -335,7 +379,8 @@ https://www.figma.com/design/yp8EzSlzOom9KwycPKKSaD
 ### 実装時の原則
 - Figma が返す生の値（`#ffffff0f` 等）を**そのままコンポーネントに書かない**。§7.4 の対応表に従ってトークンへ落とし、コンポーネントはユーティリティ（`bg-surface-2` 等）を使う
 - Figma のオートレイアウトは `flex` + `gap` に写す。要素ごとの margin で間隔を作らない
-- **§8.6 のモバイル制約が Figma のデザインより優先**。デザイン上 blur が多用されていたら、静的グラデーションでの代替を提案する
+- **§8.6 のモバイル制約が Figma のデザインより優先**。ただしピクセル調では blur も
+  グラデーションも使わない（`docs/pixel-style-guide.md` §1）ので、通常この衝突は起きない
 - 画面の描画責務は各 `page.tsx` にある（§5.1）。詳細・作成・達成エフェクトは
   ルートを持たないオーバーレイとして実装する（§5.2）
 
@@ -344,20 +389,28 @@ https://www.figma.com/design/yp8EzSlzOom9KwycPKKSaD
 |---|---|---|
 | `docs/ai-dev-guide.md`（このファイル） | HOW: 技術・アーキテクチャ・コード仕様 | **コード編集・機能/UIの検討のたびに参照する正本**（下記「エージェント共通」） |
 | `docs/ai-product-brief.md` | WHAT: プロダクト仕様・要件・ロードマップ | **WHAT に触れるとき**、または**ユーザーがパス・`@` で明示したとき**に Read。編集は要件変更時のみ |
-| `docs/ai-error-log.md` | エラー/事故ログ（再発防止） | 必要時に参照・追記 |
+| `docs/ai-error-log.md` | エラー/事故ログ（再発防止） | 必要時に参照・追記。**中身は旧デザイン時代の事故**なので、有効なのは教訓（§8.6 に抽出済み）だけ |
 | `docs/pixel-style-guide.md` | ピクセルスタイルの再現可能な規則（寸法・パレット・書体・パーツの作り方・カテゴリ5種） | **ピクセルUIを足す/直すたびに参照する正本**。Figma と CSS の両方の値を持つ |
 | `docs/design-refs/` | デザイン参考画像（ユーザーが置く） | 指示があったときに読む。命名規則は同ディレクトリの README |
-| `docs/explain/` | 特定実装の詳細解説（ユーザーが読む資料） | ユーザー指示時のみ読む・書く。自動では追加しない |
+| `docs/backend-implementation-plan.md` | バックエンド構成の決定記録 + **DB 選定の検討** | 「なぜ Workers ではなく Route Handlers なのか」（§1）、「DB をどこに置くか」（§4）を判断するときに読む |
+| `docs/explain/` | 特定実装の詳細解説（ユーザーが読む資料） | ユーザー指示時のみ読む・書く。自動では追加しない。**旧デザイン時代のものが残っている**ので、冒頭の注記を必ず確認する |
+
+> **⚠️ 旧デザインの情報を新しい実装に持ち込まない**
+> このアプリは **ピクセルゲーム調**（`docs/pixel-style-guide.md`）で作る。
+> 空間モデル（カメラ移動・フリック遷移）／Gooey・液体風の融合／ガラス・グラスモーフィズム／
+> オーロラ背景／巨大 blur は**すべて廃止した方針**。
+> 上表以外の場所（`docs/explain/`、`docs/ai-error-log.md`、既存のコンポーネント実装）に
+> それらの記述が残っていても、**新しい設計の参考にしない**。
 
 ### エージェント共通（Cursor / Claude Code）
 
-- **正本は `docs/` 配下の上表のみ**。`.cursor/rules/*.mdc` やリポジトリ直下の `CLAUDE.md` に仕様本文を重複させない。
+- **正本は `docs/` 配下の上表のみ**。リポジトリ直下の `CLAUDE.md` や各エージェントの設定ファイルに仕様本文を重複させない。
 - **`docs/ai-dev-guide.md`（必須）**: コードの編集、機能や UI の追加・変更・設計を行う**直前**に、**Read** で読む（[Claude Code の memory](https://code.claude.com/docs/en/memory) の `@` インポートでも可）。**同一セッション内で直前のメッセージまでに全文が既にコンテキストに載っている場合**は読み直し不要。
 - **`docs/ai-product-brief.md`（WHAT のとき）**: **常時は読み込まない**。次のいずれかのときに Read する。
   - ユーザーが `docs/ai-product-brief.md` を `@` やパスで**明示したとき**
   - **WHAT に触れる**作業（要件・画面・ロードマップ・プロダクトの約束を変えうる実装や判断）をするとき
 - **WHAT に触れない例**: タイポ修正、Lint、既存仕様どおりのバグ修正、内部リファクタ、**既存 brief と矛盾しない**見た目の微調整など。
-- **Cursor**: `.cursor/rules/ai-dev-guide.mdc` の指示に従う（上記の Read 方針）。
+- **Cursor**: `.cursor/rules/` は削除済み。使う場合は「本文を書かず `docs/ai-dev-guide.md` を Read させるだけ」の薄いルールを置く。
 - **Claude Code**: リポジトリ直下の **`CLAUDE.md`** は **`@docs/ai-dev-guide.md` のみ**を起動時に展開する。`ai-product-brief.md` は **`@` による常時展開は行わない**（WHAT 時・ユーザー明示時に Read）。
 
 ### 更新ルール

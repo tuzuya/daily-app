@@ -1,144 +1,210 @@
-# バックエンド実装手順（タスク CRUD）
+# バックエンド構成の記録（タスク CRUD）
 
-モノレポ構成で `api/` に Hono + Cloudflare Workers + Drizzle + Supabase を構築する。
+> **状態: Phase 1〜2 は実装済み**（2026-09-05 時点）。
+> このファイルは「これから作る手順書」ではなく、**何をどう決めて作ったかの記録**。
+> 現在のコード仕様は `docs/ai-dev-guide.md` §3 が正本。
 
-## 前提・意思決定済み
+## 1. 決定事項（なぜ今の形になったか）
 
-- **モノレポ**: `daily-app/` 内に `api/` を配置
-- **認証**: 後回し。`user_id` は将来用に nullable でスキーマに含める
-- **Task 型**: `types/task.ts` をベースに、`screen` と `updatedAt` を追加して API/DB と整合
+当初は `api/` に **Hono + Cloudflare Workers** を分離して置く計画だったが、
+Workers から Supabase(PostgreSQL) に繋ぐには Hyperdrive などの追加構成が要り、
+環境依存が大きかった。そのため次の判断をした。
 
----
+| 論点 | 決定 |
+|---|---|
+| API の置き場所 | **Next.js の Route Handlers**（`src/app/api/**/route.ts`）に置く |
+| ORM | Drizzle ORM（`lib/db/schema.ts` / `lib/db/index.ts`） |
+| DB | Supabase PostgreSQL |
+| 認証 | 後回し。`user_id` は nullable で先にスキーマへ入れてある |
+| デプロイ | フロントと API をまとめて Vercel |
 
-## Phase 1: 基盤構築
+**Hono + Cloudflare Workers への分離は「将来やるかもしれない案」として残っているだけで、
+現時点の構成ではない。** 移行する場合は Route Handlers と同じインターフェースを
+`api/` 側に写し、フロントの fetch 先を差し替える。
 
-### Step 1.1: Supabase プロジェクト作成（手動）
+### 1.1 判断が混ざっていた点（2026-09-05 整理）
 
-1. [Supabase](https://supabase.com) でプロジェクト作成
-2. Settings → Database から接続情報を取得
-   - **Connection string (URI)** または **Connection pooling** の URL をコピー
-3. ローカル用 `.env.example` に `DATABASE_URL` のプレースホルダーを記載し、`.env` を gitignore する
+当初の計画は、**独立した2つの決定を1つに束ねてしまっていた**。
 
-### Step 1.2: api/ ディレクトリと初期セットアップ
+| 軸 | 選択肢 | 影響するもの |
+|---|---|---|
+| **① どこで動かすか** | Vercel Functions / Cloudflare Workers | 起動速度・レイテンシ・DB接続・運用コスト |
+| **② どう書くか** | Next.js の `route.ts` / Hono | 型安全（RPC）・ミドルウェア・書き味 |
 
-```
-api/
-├── src/
-│   ├── index.ts        # Hono アプリエントリ
-│   ├── routes/
-│   │   └── tasks.ts    # タスク CRUD
-│   └── db/
-│       └── schema.ts   # Drizzle スキーマ
-├── drizzle.config.ts
-├── wrangler.toml
-├── package.json
-└── .env               # gitignore（DATABASE_URL）
-```
+元の選定理由にあった「Hono RPC で End-to-End 型安全を得たい」は **②の理由**なのに、
+**①の Workers 移行**とセットで語られていた。**この2つは切り離せる**（§1.3）。
 
-**実施内容:**
-- `api/` ディレクトリ作成
-- `npm init` 相当で `package.json` を作成
-- 依存関係インストール: `hono`, `drizzle-orm`, `@libsql/client`（または `postgres`）、`wrangler`（devDep）
-- `wrangler.toml` で Workers 設定（KV / D1 は使わず、Supabase に直接接続する場合は Node 互換が必要 → `pg` または Supabase クライアントを検討）
-- Drizzle は `postgres` ドライバで Supabase (Neon 互換の接続) を使用可能
+### 1.2 Workers を見送った理由
 
-**補足:** Cloudflare Workers は Node.js の `pg` をそのまま使えないため、以下のいずれかを用いる:
-- **D1**（Cloudflare の SQLite）で始める（スキーマは D1 用に調整）
-- **Hyperdrive** で Supabase に接続（Cloudflare の機能）
-- または、**API を Node.js ランタイム**で動かす（Vercel Serverless / Node など）→ 構成が変わる
+| 理由 | 内容 |
+|---|---|
+| **エッジ + 単一リージョン DB は速くならない** | Worker はユーザーの最寄りで動くが、**Supabase は1箇所にしかない**。Worker が近くても DB が遠ければ、毎回そこまで往復する。DB と同居した1リージョンの関数のほうが速いケースが普通にある |
+| **DB 接続に構成要素が増える** | Workers は本来 TCP を張れない環境。実務上は Hyperdrive（接続プール + クエリキャッシュ）を挟むのが定石で、構成が1段増える。`postgres-js` の Workers 対応も `nodejs_compat` 前提で詰まりやすい |
+| **運用が2倍になる** | リポジトリ / CI / 環境変数 / プレビュー環境がフロントとバックで別々になる。`DATABASE_URL` を2箇所で管理し、CORS を設定し、どのフロントとどの API バージョンが対応するかを自分で揃える必要がある。**個人開発ではここが一番重い** |
+| **認証で効いてくる** | Supabase Auth を入れると、フロントで取った JWT を別オリジンの API に渡して検証する手間が増える。同一オリジンならほぼ何もしなくていい部分 |
 
-**推奨:** Cloudflare Workers + Supabase の組み合わせでは、**Hyperdrive** を使うか、一旦 **Next.js API Routes / Server Actions** で Drizzle + Supabase を直接呼ぶ形で先行実装し、後で Workers に移すか、が現実的。  
-→ 本手順では **Workers + Hyperdrive 経由で Supabase に接続**する方針とする。Hyperdrive が未利用の場合は、**一時的に Next.js API Routes で Drizzle** を使い、後で Workers へ移行する選択肢もあり。
+**規模の話**: 現状の想定は自分 + 友人数人で、1画面あたり1クエリ。
+エッジ配信で稼げる数十 ms より、**コールドスタートの数百 ms のほうが支配的**。
+Workers の「コールドスタートほぼゼロ」は本物の利点だが、それを取るために
+上の4つを払う段階ではない。
 
-**簡易案（実装しやすい）:**  
-最初から Workers ではなく **Next.js の Server Actions / Route Handlers** で Drizzle + Supabase を実装し、本番デプロイも Vercel にまとめる。将来 Workers へ移行する場合は、API のインターフェースを揃えておく。
+### 1.3 型安全が欲しくなったら（Workers に行かずに解決する）
 
-**ユーザー確認が必要:** Workers + Supabase の接続方法（Hyperdrive / 一時的に Next.js 内で Drizzle）をどちらで進めるか決める必要あり。
-
-→ 手順は **「Next.js 内に API レイヤー（Route Handlers または Server Actions）を置き、Drizzle + Supabase で DB 接続」** とする。Workers への分離は後フェーズで行う。
-
----
-
-## Phase 1（改訂）: Next.js 内で Drizzle + Supabase を先行構築
-
-Cloudflare Workers + Supabase の接続が環境依存になるため、**まずは Next.js 内で Drizzle + Supabase** を実装し、タスク CRUD を動かす。
-
-### Step 1.1: Supabase プロジェクト作成（手動）
-
-- 上記と同様
-
-### Step 1.2: Drizzle + Supabase を Next.js プロジェクトに追加
-
-1. ルートで `drizzle-orm`, `drizzle-kit`, `postgres` をインストール
-2. `lib/db/` にスキーマ・クライアントを配置
-3. `.env` に `DATABASE_URL` を設定（Supabase の connection string）
-4. `drizzle.config.ts` を作成し、マイグレーション実行
-
-### Step 1.3: Task スキーマ定義
+**Hono は Next.js の Route Handler の中にそのまま載る。** インフラを分離せずに
+Hono RPC の型安全だけを取れる。
 
 ```ts
-// lib/db/schema.ts
-// tasks テーブル: id, title, category, points, done, description, deadline, imageUrl, estimatedMinutes, screen, createdAt, updatedAt
-// user_id は nullable（認証後対応）
+// src/app/api/[[...route]]/route.ts
+import { Hono } from "hono";
+import { handle } from "hono/vercel";
+
+const app = new Hono().basePath("/api");
+const routes = app
+  .get("/tasks", (c) => c.json(tasks))
+  .post("/tasks", (c) => c.json(created));
+
+export type AppType = typeof routes;   // ← フロントが import する
+export const GET = handle(app);
+export const POST = handle(app);
 ```
 
-### Step 1.4: Task 型の整合（types/task.ts）
+```ts
+// フロント側: fetch の戻り値に型が付き、API を変えるとここがコンパイルエラーになる
+const client = hc<AppType>("/");
+const res = await client.api.tasks.$get();
+```
 
-- `screen` を追加
-- `updatedAt` を追加（任意、API で返す用）
-- `createdAt` を `number` (unix ms) のまま DB は `timestamp` → 変換レイヤーで揃える
+| 欲しいもの | Hono on Vercel | Workers が必要 |
+|---|---|---|
+| End-to-End 型安全（RPC） | ✅ | — |
+| Hono の書き味・ミドルウェア | ✅ | — |
+| CORS 不要・デプロイ1回 | ✅（維持） | ❌ 失われる |
+| コールドスタートほぼゼロ | ❌ | ✅ |
+| エッジ配信 | ❌ | ✅ |
 
----
+Hono は実行環境をアダプタで差し替える設計なので、**先に Vercel で Hono を書いておくことは
+Workers 移行の遠回りではなく下ごしらえになる**（ルート定義はそのまま動く）。
 
-## Phase 2: API 層（Next.js Route Handlers）
+### 1.4 Workers に移行してよい条件
 
-### Step 2.1: タスク API エンドポイント
+次のどちらかが**実際に**当てはまったときだけ検討する。推測で動かさない。
 
-- `GET /api/tasks?screen=today` — 一覧取得
+- **コールドスタートが体感で問題になった**（PWA の初回起動が明確に遅い、と実機で確認できた）
+- **フロント/バック分離の実務経験を積むこと自体が目的になった**（これは正当な理由。ただし性能改善とは切り離して考える）
+
+移行するなら **Hyperdrive 前提で設計する**こと。素の TCP 接続のまま移すと、
+§1.2 の「エッジ + 遠い DB」で**今より遅くなる**可能性がある。
+Hyperdrive の無料枠の条件は変動しているので、着手直前に公式ドキュメントで確認する。
+
+## 2. 実装済みのエンドポイント
+
+- `GET /api/tasks?screen=today` — 一覧取得（`screen` 省略で全件）
 - `POST /api/tasks` — 作成
-- `PATCH /api/tasks/[id]` — 更新（完了トグル、編集）
+- `PATCH /api/tasks/[id]` — 更新（完了トグル・編集・画面間の移動）
 - `DELETE /api/tasks/[id]` — 削除
 
-### Step 2.2: バリデーション
+バリデーション:
+- `category` は `CATEGORIES` 配列のいずれか
+  （**現在はまだ旧6種**。5種への変更は `docs/pixel-style-guide.md` §7 の影響範囲を参照）
+- `screen` は `today` | `next` | `overdue` | `buffs`
+- `title` は必須・最大長制限
 
-- カテゴリは 6 種類のいずれか
-- screen は `today` | `next` | `overdue` | `buffs`
-- title は必須・最大長制限
+## 3. 残っている作業
 
----
+UI 側の話なので、詳細は `docs/ai-product-brief.md` §7 を見る。
 
-## Phase 3: フロントエンド連携
+- **完了トグルと削除の UI** — API は両方対応済みだが、導線がまだ無い
+  （ピクセル版では「カードを下にドラッグして達成」＋ 詳細オーバーレイの削除ボタン）
+- **カテゴリ5種化** — DB / API / 型の一括変更（`docs/pixel-style-guide.md` §7）
+- **Supabase への接続不良**（`tenant/user ... not found`）の解消
+  → **無料プランの休止が原因の可能性が高い**。乗り換えを検討中（§4）
+- **認証の実装方針が未決に戻った** — `docs/ai-dev-guide.md` §1 と
+  `docs/ai-product-brief.md` §4.5 は「認証は Supabase Auth」を前提に書かれているが、
+  §4 の乗り換えを実行すると**この前提が崩れる**。DB を移すより先に、
+  ログインをどう実装するか（Neon Auth / Clerk / Auth.js など）を決める必要がある
+- **リージョン未指定** — `src/app/api/**/route.ts` は `runtime = "nodejs"` のみで
+  `preferredRegion` を指定していないため、既定の `iad1`（米東部）で動いている。
+  **Supabase のリージョンと合っていないなら、毎回そこまで往復している**。
+  1行で直せて効果が大きいので、Workers 移行を考える前にここを合わせる:
 
-### Step 3.1: モックから API に差し替え
-
-- `SpaceNavigator.tsx` の `MOCK_TODAY` 等を、`fetch('/api/tasks?screen=today')` 等で取得したデータに差し替え
-- 状態管理: React state または Context でタスク一覧を保持
-- 追加・編集・削除・完了の操作時に API を呼び出し、取得し直す
-
-### Step 3.2: エラーハンドリング・ローディング
-
-- ローディング状態の表示
-- エラー時のトーストやリトライ
-
----
-
-## 実行順序（改訂版）
-
-| # | 内容 |
-|---|------|
-| 1 | Supabase プロジェクト作成 + DATABASE_URL 取得 |
-| 2 | Drizzle + postgres インストール、スキーマ定義 |
-| 3 | マイグレーション実行、tasks テーブル作成 |
-| 4 | Next.js Route Handlers（/api/tasks）実装 |
-| 5 | types/task.ts に screen, updatedAt 追加 |
-| 6 | SpaceNavigator を API 呼び出しに差し替え |
-| 7 | タスク追加 UI 実装 |
-| 8 | タスク編集・削除・完了トグル UI 実装 |
+  ```ts
+  export const preferredRegion = "hnd1";  // 東京。Supabase のリージョンに合わせる
+  ```
 
 ---
 
-## 補足: Workers への移行（将来）
+## 4. DB の乗り換え検討（2026-09-05 / **未実行**）
 
-- Hono を `api/` に置き、Wrangler でデプロイ
-- Hyperdrive または別の手段で Supabase に接続
-- フロントの fetch 先を Vercel の API から Cloudflare の URL に変更
+> **結論だけ**: 移すなら **Neon**。作業は `DATABASE_URL` の差し替えのみ。
+> ただし**認証の宿題が残る**（§3）。実行は後日。
+
+### 4.1 前提：現状の Supabase は「ただの Postgres」
+
+`package.json` に `@supabase/supabase-js` は無く、`postgres-js` で直接接続しているだけ。
+**Auth / Storage / Realtime を一つも使っていない。** テーブルも `tasks` 1枚（13カラム）。
+
+→ **Supabase へのロックインは実質ゼロ**。Postgres 系への移行なら接続文字列の差し替えで済む。
+
+### 4.2 乗り換えたい動機
+
+`tenant or user not found` は Supavisor（Supabase のプーラー）が返すエラーで、
+**無料プランのプロジェクトが休止されたとき**の典型的な症状。
+無料枠は1週間アクセスが無いと自動停止し、手動で復帰させる必要がある。
+
+個人開発では、この「久しぶりに触ると DB が止まっている」が実質的に一番の痛点。
+
+### 4.3 比較
+
+| | **Supabase**（現状） | **Neon** | **Turso** | **Cloudflare D1** | **Firebase (Firestore)** |
+|---|---|---|---|---|---|
+| 種類 | PostgreSQL | PostgreSQL | libSQL（SQLite系） | SQLite | **ドキュメント型 NoSQL** |
+| 無料枠の目安 | 500MB / 2プロジェクト | 0.5GB + 月190コンピュート時間 | 数GB + 月10億行読み取り級 | 5GB / 日500万行読み取り | 1GB / 日5万読み・2万書き |
+| **無操作時** | **1週間で休止**（手動復帰） | 数分でゼロにスケール、**アクセスで即復帰** | 休止なし | 休止なし | 休止なし |
+| Drizzle 対応 | ✅ | ✅ | ✅（sqlite-core） | ✅（sqlite-core） | ❌ **非対応** |
+| 認証の同梱 | ✅ Supabase Auth | ❌ | ❌ | ❌ | ✅ 強力 |
+| オフライン対応 | ❌ | ❌ | ✅ 埋め込みレプリカ | ❌ | ✅ 強力 |
+| 有料の入口 | $25/月 | $19/月 | 数ドル〜 | Workers $5/月 | 従量課金 |
+
+**無料枠の数値は頻繁に変わるので、実行する直前に公式で確認する。**
+この表で効いているのは**桁と「休止の有無」**であって、細かい数値ではない。
+
+### 4.4 移行コストは3段階
+
+| 段階 | 移行先 | 作業量 |
+|---|---|---|
+| **①** | Postgres → Postgres（**Neon**） | **ほぼゼロ。** `.env` の `DATABASE_URL` 差し替えだけ。`schema.ts` / `drizzle.config.ts` / `lib/db/index.ts` はそのまま（`prepare: false` は Supabase プーラー用なので外してよいが、残しても動く） |
+| **②** | Postgres → SQLite（**Turso / D1**） | **1〜2時間。** SQLite に `uuid` / `boolean` / `timestamp` 型が無いので `schema.ts` を全面書き換え + ドライバ変更 + マイグレーション作り直し |
+| **③** | Postgres → **Firestore** | **データ層を捨てる。** Drizzle が使えず、`lib/db/` と `src/app/api/**/route.ts` が丸ごと不要になる。`docs/ai-dev-guide.md` §3.5 の「フロントが直接DBを触らない」ルールも崩れる |
+
+②の具体例:
+
+```ts
+// 今                                    → SQLite では
+uuid("id").primaryKey().defaultRandom()  → text("id").primaryKey().$defaultFn(() => crypto.randomUUID())
+boolean("done")                          → integer("done", { mode: "boolean" })
+timestamp("created_at")                  → integer("created_at", { mode: "timestamp" })
+```
+
+### 4.5 Firebase を選ぶとしたら、理由は「安さ」ではない
+
+**オフライン対応と認証**。日次タスクの PWA と Firestore のオフライン永続化は相性が良く、
+電波が無くてもタスクを完了でき、復帰後に自動同期される。今の構成
+（`fetch` → API → DB）では**オフラインだと何もできない**。
+
+代償は、SQL・リレーショナル設計・Drizzle の型安全・実装済みの API 層すべて。
+将来 DayLog をタスクに紐づける設計（`docs/ai-product-brief.md` §4.2）も、
+NoSQL では非正規化を自分で設計する話になる。
+
+**「今の構成を維持したまま安い DB に移りたい」という動機なら、Firebase は候補から外れる。**
+これは DB の乗り換えではなくアーキテクチャの作り直しなので、別の意思決定として扱う。
+
+### 4.6 判断
+
+**Neon。** 動機（休止・無料枠）を移行コストほぼゼロで解消でき、失うものが無い。
+Supabase の付加機能を一つも使っていないため、純粋に Postgres ホスティングとして
+比較でき、そこでは Neon の「ゼロスケール + 即復帰」が明確に優位。
+
+**Turso は Cloudflare Workers に移るならセットで検討する**のが筋（§1.4 のとおり当面見送り）。
+SQLite への書き換えコストを今払う理由がない。
+
+**実行前に決めること**: 認証（§3）。Supabase を離れると `Supabase Auth` 前提が崩れる。

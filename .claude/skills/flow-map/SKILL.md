@@ -21,11 +21,13 @@ diagram the user can follow, anchored to this repo's real layers (see
 
 1. **UI / trigger** — `src/app/**/page.tsx`, `src/app/components/*.tsx`.
    Where the user actually taps/clicks (a button's `onClick`, a form submit).
-   Note: `today`/`next`/`overdue`/`buffs` page files are stub shells
-   (`return null`) — the real UI for those lives in `SpaceNavigator.tsx`.
+   Note: rendering ownership for the tab routes is mid-migration — the target
+   structure is "each `page.tsx` renders its own screen" (`docs/ai-dev-guide.md`
+   §5.1), but the pre-redesign code may still route it through a shared
+   component. **Open the actual page file before asserting either way.**
 2. **Client state / fetch** — `useState`/`useEffect`/handler functions inside
-   the component that call `fetch("/api/...")` (e.g. `SpaceNavigator.tsx`,
-   `HexagonStatus.tsx`, `TaskCardCreate.tsx`).
+   the component that call `fetch("/api/...")` (e.g. the screen's `page.tsx`,
+   `HexagonStatus.tsx`, the task overlay components).
 3. **API** — `src/app/api/**/route.ts` (Next.js Route Handlers: GET / POST /
    PATCH / DELETE). This is the only layer allowed to touch the DB
    (`docs/ai-dev-guide.md` §3.5).
@@ -39,6 +41,11 @@ don't invent API/DB steps that don't exist.
 
 ## Workflow
 
+0. **Check the design phase.** The app is being rebuilt in a pixel-game style
+   (`docs/pixel-style-guide.md`). Components tied to the old direction
+   (SpaceNavigator / GooeyNav / 3D carousel / aurora background) are on the way
+   out — if a trace lands on one, say so in the diagram rather than presenting
+   it as settled architecture.
 1. **Scope the trace.** If the user didn't name a specific action (e.g. "タス
    クを完了にする", "タスク追加ボタン", "ログイン"), ask which one. Don't try to
    map the whole app in one diagram — one user action or one feature per run.

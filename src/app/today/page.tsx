@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Task } from "@/types/task";
 import { completeTask, useTasks } from "@/lib/use-tasks";
 import TaskCarousel from "../components/TaskCarousel";
 import DropSlot from "../components/DropSlot";
 import StateBlock from "../components/StateBlock";
+import QuestClearFx from "../components/QuestClearFx";
 
 /**
  * HOME。当日のタスクを扇状のカルーセルで見せ、
@@ -17,13 +18,38 @@ import StateBlock from "../components/StateBlock";
 export default function TodayPage() {
   const { tasks, loading, error, refetch, removeLocal } = useTasks("today");
   const [dropProgress, setDropProgress] = useState(0);
+  /** 達成エフェクトはルートを持たないオーバーレイ（§5.2） */
+  const [cleared, setCleared] = useState<Task | null>(null);
+  const [totalXp, setTotalXp] = useState(0);
+
+  /* 達成時に「増える前のXP」を見せたいので、総XPを持っておく。
+   * LV/EXP の供給元が未決なので、いまは完了タスクの合計で代用する
+   * （docs/ai-product-brief.md §7.1 c）。 */
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/tasks?includeDone=1")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const done = (data.tasks as Task[]).filter((t) => t.done);
+        setTotalXp(done.reduce((sum, t) => sum + t.points, 0));
+      })
+      .catch(() => {
+        // XP は演出用なので、取れなくても達成自体は妨げない
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleComplete = useCallback(
     async (task: Task) => {
       // 先に消して手応えを返し、失敗したら取得し直して戻す
       removeLocal(task.id);
+      setCleared(task);
       try {
         await completeTask(task.id);
+        setTotalXp((xp) => xp + task.points);
       } catch {
         refetch();
       }
@@ -50,9 +76,7 @@ export default function TodayPage() {
       <div className="flex-1">
         {loading && <StateBlock kind="loading" />}
 
-        {!loading && error && (
-          <StateBlock kind="error" onRetry={refetch} />
-        )}
+        {!loading && error && <StateBlock kind="error" onRetry={refetch} />}
 
         {!loading && !error && tasks.length === 0 && (
           <StateBlock
@@ -76,6 +100,14 @@ export default function TodayPage() {
         <div className="mt-8">
           <DropSlot progress={dropProgress} />
         </div>
+      )}
+
+      {cleared && (
+        <QuestClearFx
+          task={cleared}
+          xpBefore={totalXp}
+          onDismiss={() => setCleared(null)}
+        />
       )}
     </div>
   );

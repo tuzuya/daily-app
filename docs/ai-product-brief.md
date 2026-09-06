@@ -165,7 +165,7 @@ Today に入る前の関門なので、下部ナビは出さない。
 - **継続性**: 入力が軽い（クリック数・迷いを減らす）
 - **パフォーマンス**: 体感が軽い（入力遅延がない）
 - **可用性**: ローカル開発で再現できること
-- **データ**: Supabase PostgreSQL + Drizzle ORM で永続化
+- **データ**: **Neon**(PostgreSQL) + Drizzle ORM で永続化（2026-09-06 に Supabase から変更）
 
 ## 6. 画面（現時点）
 ルート名は現状の意図を示す（実装の実パスに合わせて更新する）。
@@ -227,7 +227,7 @@ Today に入る前の関門なので、下部ナビは出さない。
 - **あなたの指示を最優先**し、`ai-product-brief.md` は常に現状の計画と実装状況に追従して更新する。
 
 - [x] **基盤**: Next.js(App Router) + Tailwind v4 + トークン層（`src/app/global.css`）
-- [x] **永続化**: Supabase PostgreSQL + Drizzle ORM + Next.js Route Handlers
+- [x] **永続化**: PostgreSQL + Drizzle ORM + Next.js Route Handlers
       （`GET/POST /api/tasks`、`PATCH/DELETE /api/tasks/[id]`）
 - [x] **画面遷移**: `today` / `next` / `overdue` / `buffs` / `profile`（`login` は未実装）
 - [x] **Todo UI（一部）**: 一覧・追加・編集（Level / 所要時間）
@@ -245,7 +245,7 @@ Today に入る前の関門なので、下部ナビは出さない。
 - **デザイン**: ピクセル調への刷新中。正本は `docs/pixel-style-guide.md`、
   Figma に HOME / 一覧3画面 / 達成エフェクトが揃っている
 - **既知の問題**:
-  - Supabase に接続できない（`tenant/user ... not found`。一時停止か削除の可能性）
+  - **DB 未接続**。Supabase が休止しており、Neon への移行が未実行（2026-09-06 決定）
   - `public/task-images/` が存在せず、`lib/task-design.ts` の `image` パスが全て 404
     （ピクセル版ではスプライトに置き換わるため解消見込み）
   - `docs/explain/carousel-3d-depth-tuning.md` は旧デザイン（3D奥行き）の解説。
@@ -314,6 +314,10 @@ Figma の HOME は `LV 7`・`1240 G`・EXPゲージを、達成エフェクト�
 - **コインの獲得と消費のルール**: アバターの装備/カスタマイズと合わせてベータ後に決める（§4.7）
 
 ## 9. 変更ログ（重要な仕様変更だけ）
+- 2026-09-06: **DB を Supabase から Neon へ**（`docs/backend-implementation-plan.md` §4）。
+  無操作1週間で休止する点が痛点だった。作業は `DATABASE_URL` の差し替えのみ
+- 2026-09-06: **ピクセル版で実装すると決定。** 非ピクセルのハイブリッド案
+  （`docs/pixel-style-guide.md` §9.12 / §9.13）は試作を残して見送り
 - 2026-09-06: **中核の設計思想「アバター育成」を明文化**（§1.1）。
   このアプリは Todo アプリの見た目をした育成ゲームであり、タスクは
   アバターを育てるための手段。アバターは「アプリ内のもう一人の自分」

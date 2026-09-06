@@ -11,9 +11,11 @@
 - **UI**: Tailwind CSS v4
 - **UI utilities**: shadcn, Radix関連, Headless UI
 - **バックエンドAPI**: **Next.js Route Handlers**（`src/app/api/**/route.ts`）
-- **DB**: Supabase PostgreSQL — **`postgres-js` で直接接続しているだけで、
-  Supabase の Auth / Storage / Realtime は一つも使っていない**（`@supabase/supabase-js` 未導入）。
-  そのためロックインは実質ゼロで、**Neon への乗り換えを検討中**（`docs/backend-implementation-plan.md` §4）
+- **DB**: **Neon**（PostgreSQL）★2026-09-06 決定・**移行未実行**
+  - `postgres-js` で直接接続する。ORM 以外のベンダー機能は使わない
+  - 旧: Supabase。Auth / Storage / Realtime を一つも使っておらず、無料枠の
+    1週間休止が痛点だったため乗り換え（`docs/backend-implementation-plan.md` §4）
+  - **移行作業は `DATABASE_URL` の差し替えのみ。** コード変更は不要
 - **認証**: **未実装かつ方針も未決。** 以前は「Supabase Auth を使う」前提だったが、
   DB 乗り換えの検討でこの前提が崩れた。実装する前に方針を決めること
 - **ORM**: Drizzle ORM
@@ -67,7 +69,7 @@
 
 ### 3.2 リクエストフロー
 ```
-ブラウザ (Next.js) → Route Handlers (/api/tasks) → Drizzle ORM → Supabase PostgreSQL
+ブラウザ (Next.js) → Route Handlers (/api/tasks) → Drizzle ORM → Neon (PostgreSQL)
 ```
 
 ### 3.3 データモデル（Drizzle スキーマ想定）
@@ -130,9 +132,9 @@ completedAt: timestamp?     // 達成した瞬間
 5. Vercel の環境変数に `DATABASE_URL` を設定
 
 ### 3.5 データ永続化ルール
-- UI → Route Handlers (`/api/tasks`) → Drizzle → Supabase DB の流れを守る。
+- UI → Route Handlers (`/api/tasks`) → Drizzle → Neon の流れを守る。
 - フロントエンドが直接DBを触る実装は避け、必ずバックエンド API 経由にする。
-- バックエンドの `.env` に Supabase 接続情報（`DATABASE_URL` 等）を設定する。
+- `.env.local` に `DATABASE_URL`（Neon の **pooled** 接続文字列）を設定する。
 
 ## 4. ルーティング（App Router）
 ディレクトリ: `src/app/`

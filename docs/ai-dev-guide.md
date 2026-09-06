@@ -22,6 +22,10 @@
 - **Lint**: ESLint
 - **Runtime**: Node.js（npm / `package-lock.json` あり）
 - **デプロイ**: Vercel（フロント・API まとめて）
+  - **関数のリージョンは `vercel.json` の `regions` で指定する**（現在 `sin1` = シンガポール）。
+    DB と同じ場所に置かないと、API が毎回地球を往復する
+    （`docs/backend-implementation-plan.md` §3）。
+    Next.js の `preferredRegion` は deprecated なので使わない
 
 > **Hono + Cloudflare Workers は「将来やるかもしれない案」であって、現在の構成ではない。**
 > Workers から Supabase に繋ぐのに Hyperdrive 等の追加構成が要り環境依存が大きかったため、

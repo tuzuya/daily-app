@@ -122,14 +122,27 @@ UI 側の話なので、詳細は `docs/ai-product-brief.md` §7 を見る。
   `docs/ai-product-brief.md` §4.5 は「認証は Supabase Auth」を前提に書かれているが、
   §4 の乗り換えを実行すると**この前提が崩れる**。DB を移すより先に、
   ログインをどう実装するか（Neon Auth / Clerk / Auth.js など）を決める必要がある
-- **リージョン未指定** — `src/app/api/**/route.ts` は `runtime = "nodejs"` のみで
-  `preferredRegion` を指定していないため、既定の `iad1`（米東部）で動いている。
-  **Supabase のリージョンと合っていないなら、毎回そこまで往復している**。
-  1行で直せて効果が大きいので、Workers 移行を考える前にここを合わせる:
+- **リージョン未指定** — Vercel の関数（`src/app/api/**/route.ts`）は
+  既定で `iad1`（米東部ワシントンD.C.）で動く。
+  **DB のリージョンと合っていないと、毎回そこまで往復する。**
+  1リクエストで複数クエリを投げると、その回数ぶん往復が増える。
+  **ユーザー↔関数の距離より、関数↔DB の距離のほうが効く。**
 
-  ```ts
-  export const preferredRegion = "hnd1";  // 東京。Supabase のリージョンに合わせる
+  > **`preferredRegion` は使わない。** Next.js 16 で deprecated。
+  > 一時期この文書に書いていたが誤り（2026-09-07 訂正）。
+
+  正しい指定方法は次の3つ。**リポジトリから見える** `vercel.json` を採る。
+
+  ```json
+  // vercel.json
+  { "regions": ["sin1"] }   // シンガポール。Neon と同じ場所
   ```
+
+  - ダッシュボード: Settings → Functions → Function Regions
+  - CLI: `vercel --regions sin1`
+
+  Hobby プランは**1リージョンのみ**。静的ファイル（ビルド出力の `○`）は
+  元々CDN配信なので、この設定の影響を受けない。効くのは API（`ƒ`）だけ。
 
 ---
 
@@ -141,7 +154,11 @@ UI 側の話なので、詳細は `docs/ai-product-brief.md` §7 を見る。
 
 ### 4.0 実行手順
 
-1. [Neon](https://neon.tech) でプロジェクト作成（リージョンは東京 `ap-southeast-1` 等）
+1. [Neon](https://neon.tech) でプロジェクト作成
+   - **リージョンは Singapore `ap-southeast-1`**（2026-09-07 時点で東京が無かった）
+   - 日本からは東京比で往復が 60〜80ms ほど増える。**ユーザー↔関数**の遅延は
+     1往復ぶんだが、**関数↔DB**はクエリ回数ぶん効くので、
+     **Vercel の関数も Singapore (`sin1`) に寄せる**（§3 のリージョン指定）
 2. **Pooled connection string** を取得（`-pooler` が付いたほう）
 3. `.env.local` の `DATABASE_URL` を差し替え
 4. `npm run db:push` でスキーマを反映

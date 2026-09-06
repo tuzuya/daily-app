@@ -21,22 +21,30 @@ export type TasksState = {
   removeLocal: (id: string) => void;
 };
 
+type Result =
+  | { status: "loading" }
+  | { status: "ok"; tasks: Task[] }
+  | { status: "error"; message: string };
+
 export function useTasks(screen: TaskScreen): TasksState {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  /* 取得の結果を1つの state にまとめている。
+   * loading / tasks / error を別々に持つと、effect の中で3回 setState することになり
+   * カスケードレンダーを招く（react-hooks/set-state-in-effect）。 */
+  const [result, setResult] = useState<Result>({ status: "loading" });
   const [nonce, setNonce] = useState(0);
 
   const refetch = useCallback(() => setNonce((n) => n + 1), []);
 
   const removeLocal = useCallback((id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setResult((prev) =>
+      prev.status === "ok"
+        ? { status: "ok", tasks: prev.tasks.filter((t) => t.id !== id) }
+        : prev,
+    );
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
     fetch(`/api/tasks?screen=${screen}`)
       .then(async (res) => {
@@ -45,15 +53,18 @@ export function useTasks(screen: TaskScreen): TasksState {
       })
       .then((data) => {
         if (cancelled) return;
-        setTasks(Array.isArray(data?.tasks) ? (data.tasks as Task[]) : []);
+        setResult({
+          status: "ok",
+          tasks: Array.isArray(data?.tasks) ? (data.tasks as Task[]) : [],
+        });
       })
       .catch((e: unknown) => {
         if (cancelled) return;
-        // 0件と区別できるよう、エラーは必ず error に入れる
-        setError(e instanceof Error ? e.message : "読み込みに失敗しました");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        // 0件と区別できるよう、エラーは必ず error として持つ
+        setResult({
+          status: "error",
+          message: e instanceof Error ? e.message : "読み込みに失敗しました",
+        });
       });
 
     return () => {
@@ -61,7 +72,13 @@ export function useTasks(screen: TaskScreen): TasksState {
     };
   }, [screen, nonce]);
 
-  return { tasks, loading, error, refetch, removeLocal };
+  return {
+    tasks: result.status === "ok" ? result.tasks : [],
+    loading: result.status === "loading",
+    error: result.status === "error" ? result.message : null,
+    refetch,
+    removeLocal,
+  };
 }
 
 /** タスクを Today へ移す。旧 `SpaceNavigator.moveToToday` の中身。 */

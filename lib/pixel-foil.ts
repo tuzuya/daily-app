@@ -78,7 +78,7 @@ function stripeTile(palette: string[]): string {
   return svgUrl(size, size, body);
 }
 
-let stripeCache: { holo?: string; plat?: string } = {};
+const stripeCache: { holo?: string } = {};
 
 /** HARD の虹の箔。背景として敷き詰める */
 export function holoStripe(): string {

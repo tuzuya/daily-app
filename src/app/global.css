@@ -337,10 +337,35 @@
   animation: pixel-frame-toggle 0.64s steps(1, end) infinite;
 }
 
+/* 読込中の砂時計。なめらかに回さず、4コマのコマ送りにする（§9.10） */
+@keyframes pixel-hourglass {
+  0%,
+  24.99% {
+    transform: rotate(0deg);
+  }
+  25%,
+  49.99% {
+    transform: rotate(90deg);
+  }
+  50%,
+  74.99% {
+    transform: rotate(180deg);
+  }
+  75%,
+  100% {
+    transform: rotate(270deg);
+  }
+}
+
+.pixel-hourglass {
+  animation: pixel-hourglass 1.6s steps(1, end) infinite;
+}
+
 /* 動きを減らす設定なら止める。静止状態でも成立する見た目にしてある */
 @media (prefers-reduced-motion: reduce) {
   .pixel-sparkle,
-  .pixel-rays {
+  .pixel-rays,
+  .pixel-hourglass {
     animation: none;
   }
   .pixel-rays:nth-of-type(2) {

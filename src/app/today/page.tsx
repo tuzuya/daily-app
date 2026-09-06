@@ -87,20 +87,26 @@ export default function TodayPage() {
         )}
 
         {!loading && !error && tasks.length > 0 && (
-          <TaskCarousel
-            tasks={tasks}
-            onComplete={handleComplete}
-            onDropProgress={setDropProgress}
-          />
+          /*
+           * カルーセルとドロップ枠は**重なり順が意味を持つ**ので同じ文脈に置く。
+           * カードは枠の「下」に潜り込んで消える必要があるため、
+           * 枠側を上（z-10）にする。逆にするとカードが枠の手前を素通りする。
+           */
+          <div className="relative">
+            <div className="relative z-0">
+              <TaskCarousel
+                tasks={tasks}
+                onComplete={handleComplete}
+                onDropProgress={setDropProgress}
+              />
+            </div>
+
+            <div className="relative z-10 mt-6">
+              <DropSlot progress={dropProgress} />
+            </div>
+          </div>
         )}
       </div>
-
-      {/* 達成の受け口。タスクが無いときは出さない */}
-      {!loading && !error && tasks.length > 0 && (
-        <div className="mt-8">
-          <DropSlot progress={dropProgress} />
-        </div>
-      )}
 
       {cleared && (
         <QuestClearFx

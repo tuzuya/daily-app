@@ -8,19 +8,33 @@ import TaskCard from "./TaskCard";
 /**
  * Today のカードカルーセル。Figma の HOME 画面に対応。
  *
+ * **カードは画面下の一点を中心とした輪の上に並ぶ。**
+ * 中央のカードは直立し、外側のカードほど傾く。傾きの向きは
+ * 「カードの底辺が輪の中心（画面下）を向く」= 端のカードは**内向き**に倒れる。
+ * 外向きに倒すと扇が裏返って見える。
+ *
  * 旧版との違い:
- * - **3D遠近（perspective / rotateY / translateZ）をやめた。** 旧デザインの表現で、
- *   モバイルの重い表現リスト（docs/ai-dev-guide.md §8.6）にも入っている。
- *   ピクセル版は 2D の回転とオフセットだけで扇状に見せる
- * - **下方向のドラッグで達成**する導線を足した。これが完了の唯一の操作
- *   （docs/pixel-style-guide.md §10.2）
+ * - 3D遠近（perspective / rotateY / translateZ）をやめた。旧デザインの表現で、
+ *   モバイルの重い表現リスト（docs/ai-dev-guide.md §8.6）にも入っている
+ * - **下方向のドラッグで達成**。§8.2 のとおり 234px 落ちながら 0.4 倍に縮み、
+ *   ドロップ枠の下へ潜り込んで消える
  * - ref をレンダー中に読まないようにした（旧版の `react-hooks/refs` エラー）
  */
 
 const CARD_W = 150;
-const PITCH = 192; // 隣のカードまでの距離
-const TILT = 10; // 端のカードの傾き（度）
-const SIDE_DROP = 30; // 端のカードを下げる量
+const CARD_H = 200;
+
+/** 隣のカードとの距離 */
+const PITCH = 192;
+/** 1枚ぶんの角度。輪の半径はここから逆算する */
+const ANGLE_STEP = 12;
+const RAD = (ANGLE_STEP * Math.PI) / 180;
+/** 輪の半径。R*sin(θ) = PITCH になるように取る */
+const RADIUS = PITCH / Math.sin(RAD);
+
+/** §8.2 のカード投入。落ちる距離と縮小率 */
+const DROP_TRAVEL = 234;
+const DROP_SCALE_MIN = 0.4;
 
 const DRAG_PX_PER_CARD = 110;
 const VELOCITY_PER_CARD = 500;
@@ -33,6 +47,17 @@ const AXIS_LOCK = 12;
 
 type Axis = "none" | "x" | "y";
 
+/** 輪の上の位置と傾き。offset は中央からの枚数（小数可） */
+function seatOnWheel(offset: number) {
+  const theta = offset * RAD;
+  return {
+    x: RADIUS * Math.sin(theta),
+    y: RADIUS * (1 - Math.cos(theta)),
+    // 時計回りが正。右のカードは右に倒れ、底辺が中心（下）を向く
+    rotate: offset * ANGLE_STEP,
+  };
+}
+
 export type TaskCarouselProps = {
   tasks: Task[];
   onSelect?: (task: Task) => void;
@@ -40,6 +65,8 @@ export type TaskCarouselProps = {
   onComplete?: (task: Task) => void;
   /** 引っ張り具合（0..1）。ドロップ枠を光らせるのに使う */
   onDropProgress?: (progress: number) => void;
+  /** 下のページ表示を出すか */
+  showPager?: boolean;
 };
 
 export default function TaskCarousel({
@@ -47,6 +74,7 @@ export default function TaskCarousel({
   onSelect,
   onComplete,
   onDropProgress,
+  showPager = false,
 }: TaskCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -61,6 +89,7 @@ export default function TaskCarousel({
   );
 
   const displayIndex = activeIndex + dragOffset;
+  const dropProgress = Math.min(1, dropY / DROP_THRESHOLD);
 
   const reset = () => {
     setDragOffset(0);
@@ -124,10 +153,14 @@ export default function TaskCarousel({
 
   return (
     <div className="relative w-full" style={{ touchAction: "pan-y" }}>
-      <div className="relative h-[236px] overflow-hidden">
+      {/*
+       * **overflow を切らない。** 切るとカードがドロップ枠まで届かず、
+       * 枠の手前で消えてしまう。左右のはみ出しは親側の余白で処理する。
+       */}
+      <div className="relative" style={{ height: CARD_H + 36 }}>
         <motion.div
-          className="absolute inset-0 flex items-start justify-center"
-          style={{ touchAction: "none" }}
+          className="absolute inset-x-0 top-0 flex items-start justify-center"
+          style={{ touchAction: "none", height: CARD_H }}
           drag
           dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
           dragElastic={0}
@@ -141,18 +174,32 @@ export default function TaskCarousel({
             const abs = Math.abs(offset);
             if (abs > 2) return null; // 見えないカードは描かない
 
-            const isCenter = Math.abs(offset) < 0.5;
-            const x = offset * PITCH;
-            const y =
-              Math.min(abs, 1) * SIDE_DROP + (isCenter ? dropY : 0);
-            const rotate = Math.max(-TILT, Math.min(TILT, -offset * TILT));
+            const isCenter = abs < 0.5;
+            const seat = seatOnWheel(offset);
+
+            /* §8.2: 引っ張ると 234px 落ちながら 0.4 倍まで縮む。
+             * これで枠の下へ潜り込んで見える。等速で動かすと
+             * 枠を素通りしたように見えてしまう。 */
+            const dropShift = isCenter ? dropProgress * DROP_TRAVEL : 0;
+            const dropScale = isCenter
+              ? 1 - dropProgress * (1 - DROP_SCALE_MIN)
+              : 1;
 
             return (
               <motion.div
                 key={task.id}
-                className="absolute"
-                style={{ width: CARD_W, zIndex: count - Math.round(abs) }}
-                animate={{ x, y, rotate }}
+                className="absolute left-1/2 top-0"
+                style={{
+                  width: CARD_W,
+                  marginLeft: -CARD_W / 2,
+                  zIndex: count - Math.round(abs),
+                }}
+                animate={{
+                  x: seat.x,
+                  y: seat.y + dropShift,
+                  rotate: seat.rotate,
+                  scale: dropScale,
+                }}
                 transition={
                   dragging
                     ? { duration: 0 }
@@ -161,9 +208,7 @@ export default function TaskCarousel({
               >
                 <TaskCard
                   task={task}
-                  onPress={
-                    isCenter && axis === "none" ? onSelect : undefined
-                  }
+                  onPress={isCenter && axis === "none" ? onSelect : undefined}
                 />
               </motion.div>
             );
@@ -171,8 +216,7 @@ export default function TaskCarousel({
         </motion.div>
       </div>
 
-      {/* ページ表示。丸ではなく角のある四角（ピクセルUIに丸みは使わない） */}
-      {count > 1 && (
+      {showPager && count > 1 && (
         <div className="mt-2 flex justify-center gap-[6px]">
           {tasks.map((t, i) => (
             <button

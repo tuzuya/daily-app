@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Press_Start_2P, DotGothic16, Silkscreen } from "next/font/google";
 import PixelNav from "./components/PixelNav";
 import PixelTopMenu from "./components/PixelTopMenu";
+import PixelBackground from "./components/PixelBackground";
 import "./global.css";
 
 /* 書体の役割は固定（docs/pixel-style-guide.md §3）
@@ -61,6 +62,8 @@ export default function RootLayout({
        */}
       <body className="flex h-[100dvh] flex-col overflow-hidden bg-ground text-ink">
         <main className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {/* 地の色帯。単色にすると参考画像の奥行きが出ない（§2.1 / §4.2） */}
+          <PixelBackground />
           {children}
         </main>
 

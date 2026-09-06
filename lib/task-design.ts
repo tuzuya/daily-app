@@ -1,131 +1,128 @@
 /**
  * タスク表示のデザイン定数（単一ソース）
  *
- * カテゴリ色 / レベル定義は、以前 TaskCard・TaskCardDetail・TaskCardCreate・
- * HexagonStatus の4ファイルに重複していた。Figma で新しいデザイントークンが
- * 決まったら **このファイルだけ** を書き換えれば全画面に反映される。
+ * 色の正本は Figma の `daily-app / pixel` コレクションと
+ * `src/app/global.css` の CSS 変数。ここは「どのカテゴリがどのトークンを使うか」
+ * の対応表であって、色そのものを増やす場所ではない。
  *
- * 対応する CSS 変数は src/app/global.css の `--category-*` を参照。
- * SVG の fill など Tailwind クラスが使えない箇所では `hex` を使う。
+ * 規則は docs/pixel-style-guide.md（§5 カテゴリ、§9.7 レア度エフェクト）。
  */
 
-import type { TaskCategory } from "@/types/task";
+import type { TaskCategory, TaskLevel } from "@/types/task";
 
 export type CategoryDesign = {
   key: TaskCategory;
   label: string;
-  /** チャートや SVG の fill 用（Tailwind クラスが使えない箇所） */
+  /** カテゴリ帯・チャートの色。SVG の fill など Tailwind が使えない箇所用 */
   hex: string;
-  /** カード表面のグラデーション（TaskCard のサムネ・バッジ） */
-  gradient: string;
-  /** カードの枠線 */
-  border: string;
-  /** モーダル背景の大きなグラデーション */
-  modalGradient: string;
-  /** 見出しのアクセント文字色 */
-  accent: string;
-  /** カテゴリのサムネイル画像 */
-  image: string;
+  /** カード面の色（カテゴリ色の彩度を落としたもの） */
+  faceVar: string;
+  /** 下辺ベベル・区切り線 */
+  faceDarkVar: string;
+  /** Tailwind クラス（カテゴリ帯） */
+  stripClass: string;
+  /** Tailwind クラス（カード面） */
+  faceClass: string;
 };
 
 export const CATEGORY_DESIGNS: readonly CategoryDesign[] = [
   {
-    key: "routine",
-    label: "Routine",
-    hex: "#f59e0b",
-    gradient: "from-amber-400/80 to-orange-500/80",
-    border: "border-amber-400/25",
-    modalGradient: "from-amber-600/60 via-orange-500/40 to-yellow-500/30",
-    accent: "text-amber-300",
-    image: "/task-images/routine.png",
+    key: "vitality",
+    label: "VITALITY",
+    hex: "#d1564b",
+    faceVar: "--accent-rust",
+    faceDarkVar: "--accent-rust-dark",
+    stripClass: "bg-category-vitality",
+    faceClass: "bg-accent-rust",
   },
   {
-    key: "health",
-    label: "Health",
-    hex: "#10b981",
-    gradient: "from-emerald-400/80 to-teal-500/80",
-    border: "border-emerald-400/25",
-    modalGradient: "from-emerald-600/60 via-teal-500/40 to-cyan-600/30",
-    accent: "text-emerald-300",
-    image: "/task-images/health.png",
-  },
-  {
-    key: "physical",
-    label: "Physical",
-    hex: "#3b82f6",
-    gradient: "from-blue-400/80 to-indigo-500/80",
-    border: "border-blue-400/25",
-    modalGradient: "from-blue-600/60 via-indigo-500/40 to-violet-500/30",
-    accent: "text-blue-300",
-    image: "/task-images/physical.png",
-  },
-  {
-    key: "knowledge",
-    label: "Knowledge",
-    hex: "#8b5cf6",
-    gradient: "from-violet-400/80 to-purple-500/80",
-    border: "border-violet-400/25",
-    modalGradient: "from-violet-600/60 via-purple-500/40 to-fuchsia-500/30",
-    accent: "text-violet-300",
-    image: "/task-images/knowledge.png",
-  },
-  {
-    key: "activity",
-    label: "Activity",
-    hex: "#84cc16",
-    gradient: "from-lime-400/80 to-green-500/80",
-    border: "border-lime-400/25",
-    modalGradient: "from-lime-600/60 via-green-500/40 to-emerald-500/30",
-    accent: "text-lime-300",
-    image: "/task-images/activity.png",
+    key: "intelligence",
+    label: "INTELLIGENCE",
+    hex: "#5b8fd4",
+    faceVar: "--accent-mint",
+    faceDarkVar: "--accent-mint-dark",
+    stripClass: "bg-category-intelligence",
+    faceClass: "bg-accent-mint",
   },
   {
     key: "creative",
-    label: "Creative",
-    hex: "#ec4899",
-    gradient: "from-pink-400/80 to-rose-500/80",
-    border: "border-pink-400/25",
-    modalGradient: "from-pink-600/60 via-rose-500/40 to-red-500/30",
-    accent: "text-pink-300",
-    image: "/task-images/creative.png",
+    label: "CREATIVE",
+    hex: "#d4638f",
+    faceVar: "--accent-lilac",
+    faceDarkVar: "--accent-lilac-dark",
+    stripClass: "bg-category-creative",
+    faceClass: "bg-accent-lilac",
+  },
+  {
+    key: "recovery",
+    label: "RECOVERY",
+    hex: "#7fc36a",
+    faceVar: "--accent-olive",
+    faceDarkVar: "--accent-olive-dark",
+    stripClass: "bg-category-recovery",
+    faceClass: "bg-accent-olive",
+  },
+  {
+    key: "quest",
+    label: "QUEST",
+    hex: "#e8a52c",
+    faceVar: "--accent-sand",
+    faceDarkVar: "--accent-sand-dark",
+    stripClass: "bg-category-quest",
+    faceClass: "bg-accent-sand",
   },
 ] as const;
 
-/** 未知のカテゴリが来たときのフォールバック（DB は varchar なので型外の値が入り得る） */
-export const CATEGORY_FALLBACK: Omit<CategoryDesign, "key" | "label" | "image"> = {
-  hex: "#94a3b8",
-  gradient: "from-slate-400/80 to-slate-500/80",
-  border: "border-slate-400/25",
-  modalGradient: "from-slate-600/60 via-slate-500/40 to-slate-400/30",
-  accent: "text-slate-300",
+/** DB の `category` は varchar なので、型外の値が入り得る */
+export const CATEGORY_FALLBACK: Omit<CategoryDesign, "key" | "label"> = {
+  hex: "#a2906d",
+  faceVar: "--panel-raised",
+  faceDarkVar: "--ink-faint",
+  stripClass: "bg-ink-muted",
+  faceClass: "bg-panel-raised",
 };
 
-/**
- * カテゴリ名からデザインを引く。大文字小文字は無視し、
- * 未知の値ならフォールバックを返す。
- */
 export function categoryDesign(
   category: string,
-): Omit<CategoryDesign, "key" | "label" | "image"> &
-  Partial<Pick<CategoryDesign, "key" | "label" | "image">> {
+): Omit<CategoryDesign, "key" | "label"> &
+  Partial<Pick<CategoryDesign, "key" | "label">> {
   const key = category.toLowerCase();
   return CATEGORY_DESIGNS.find((c) => c.key === key) ?? CATEGORY_FALLBACK;
 }
 
-/** タスクの難易度レベルと、それに対応するポイント */
-export type Level = "easy" | "normal" | "hard" | "extra";
-
-export const LEVELS: readonly { value: Level; label: string; points: number }[] = [
-  { value: "easy", label: "Easy", points: 5 },
-  { value: "normal", label: "Normal", points: 10 },
-  { value: "hard", label: "Hard", points: 20 },
-  { value: "extra", label: "Extra", points: 30 },
+/**
+ * 難易度。ポイントと**カードのレア度エフェクト**の両方を決める。
+ * 難しいタスクほど育つ = 難しいタスクほどカードが豪華になる
+ * （docs/ai-product-brief.md §1.1）。
+ */
+export const LEVELS: readonly {
+  value: TaskLevel;
+  label: string;
+  points: number;
+}[] = [
+  { value: "easy", label: "EASY", points: 5 },
+  { value: "normal", label: "NORMAL", points: 10 },
+  { value: "hard", label: "HARD", points: 20 },
+  { value: "extra", label: "EXTRA", points: 30 },
 ] as const;
 
-/** 保存済みポイントから、表示すべきレベルを逆算する */
-export function inferLevel(points: number): Level {
+/** 保存済みポイントから表示すべき難易度を逆算する */
+export function inferLevel(points: number): TaskLevel {
   if (points >= 30) return "extra";
   if (points >= 20) return "hard";
   if (points >= 10) return "normal";
   return "easy";
+}
+
+/**
+ * 総XPからレベルを出す（docs/ai-product-brief.md §7.1 c）。
+ * users テーブルを持たず、完了タスクの points 合計から計算する。
+ */
+export function levelFromXp(totalXp: number): number {
+  return Math.floor(Math.sqrt(Math.max(0, totalXp) / 50)) + 1;
+}
+
+/** 現在のレベル区間 [開始XP, 次のレベルに必要なXP] */
+export function xpRangeForLevel(level: number): [number, number] {
+  return [50 * (level - 1) ** 2, 50 * level ** 2];
 }

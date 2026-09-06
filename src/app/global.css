@@ -2,236 +2,348 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 /* ============================================================
  * デザイントークン（Figma variables の着地点）
  *
- * このアプリはダーク専用。以前は shadcn のライト値が :root に、
- * ダーク値が .dark に入っていたが、.dark はどこにも付与されて
- * おらず実質未使用だった（見た目は layout.tsx の bg-slate-950
- * 直書きで作られていた）。ここを実態に合わせ、:root をそのまま
- * ダークパレットの単一ソースにしている。
+ * 正本は Figma の `daily-app / pixel` コレクション。
+ * 値はそこから書き出したものなので、**手で変えずに Figma を直す**。
+ * 命名の対応は docs/ai-dev-guide.md §7.4、
+ * 使い方の規則は docs/pixel-style-guide.md。
  *
- * Figma でトークンが決まったら、下の値を差し替えるだけでよい。
- * Figma の variable 名 ↔ ここの変数名 の対応表は
- * docs/ai-dev-guide.md §7.4 を参照。
+ * このアプリはダーク専用。ライト用のブロックは持たない。
  * ============================================================ */
 
 :root {
-  /* --- 地色・背景演出 ------------------------------------- */
-  --ground: #020617;
-  /* layout.tsx の radial-gradient 2枚（オーロラ風の背景） */
-  --aurora-1: rgba(147, 51, 234, 0.3);
-  --aurora-2: rgba(37, 99, 235, 0.2);
+  /* --- 基準（docs/pixel-style-guide.md §1）----------------
+   * 1アートピクセル = 3px。全ての寸法はこの倍数。
+   * 角丸は 0、枠線は 3px、余白は 6px 刻み。 */
+  --px-unit: 3px;
+  --border-w: 3px;
+  --radius-pixel: 0;
 
-  /* --- ガラス面（暗い地色に重ねる半透明の白） ------------- */
-  --surface-1: rgba(255, 255, 255, 0.04); /* 控えめなパネル */
-  --surface-2: rgba(255, 255, 255, 0.06); /* カード・チップ（標準） */
-  --surface-3: rgba(255, 255, 255, 0.1); /* hover / 押下 */
-  --surface-4: rgba(255, 255, 255, 0.15); /* 選択中 */
+  --space-1: 6px;
+  --space-2: 12px;
+  --space-3: 18px;
+  --space-4: 24px;
+  --space-6: 36px;
+  --space-8: 48px;
 
-  /* --- 暗い面（モーダル・コントロール） ------------------- */
-  --veil: rgba(2, 6, 23, 0.8); /* モーダル本体 */
-  --veil-bar: rgba(2, 6, 23, 0.35); /* モーダル内の固定ヘッダ/フッタ */
-  --veil-panel: rgba(2, 6, 23, 0.7); /* ドロップダウン */
-  --control: rgba(15, 23, 42, 0.7); /* 丸ボタン（TopMenu） */
-  --field: rgba(0, 0, 0, 0.4); /* テキスト入力 */
-  --scrim: rgba(0, 0, 0, 0.7); /* モーダルの背面 */
+  /* --- 地色 ----------------------------------------------- */
+  --ground-deep: #221c12;
+  --ground: #3b3122;
+  --ground-warm: #5c4d33;
+  --ground-lift: #7a6743;
 
-  /* --- 罫線 ----------------------------------------------- */
-  --line-faint: rgba(255, 255, 255, 0.08);
-  --line: rgba(255, 255, 255, 0.12);
-  --line-strong: rgba(255, 255, 255, 0.25);
+  /* --- 面 ------------------------------------------------- */
+  --panel: #2b2419;
+  --panel-raised: #4a3d28;
 
-  /* --- 文字 ----------------------------------------------- */
-  --ink: #f8fafc;
-  --ink-soft: #e2e8f0;
-  --ink-muted: #94a3b8;
-  --ink-faint: #64748b;
-  --ink-inverse: #0f172a; /* 白いボタンの上の文字 */
+  /* --- 輪郭・文字 ------------------------------------------ */
+  --ink-outline: #14100a;
+  --ink: #f4ecd8;
+  --ink-soft: #d8c9a8;
+  --ink-muted: #a2906d;
+  --ink-faint: #6f6047;
+  --ink-inverse: #14100a;
+
+  /* --- ゴールド = 操作の合図 ------------------------------- */
+  --gold-light: #ffd966;
+  --gold: #e8a52c;
+  --gold-dark: #a06a14;
+
+  /* --- カード面のアクセント（明色 / ベベル暗色のペア）------ */
+  --accent-mint: #9ad6cf;
+  --accent-mint-dark: #4f8c86;
+  --accent-olive: #97a855;
+  --accent-olive-dark: #5c6b33;
+  --accent-rust: #c4663a;
+  --accent-rust-dark: #7d3a1c;
+  --accent-sand: #d9b382;
+  --accent-sand-dark: #8f6b3d;
+  --accent-lilac: #b3a3d9;
+  --accent-lilac-dark: #6b5c96;
 
   /* --- 意味を持つ色 --------------------------------------- */
-  --success: #10b981; /* 完了 */
-  --danger: #f43f5e; /* エラー・Overdue */
-  --points: #fcd34d; /* ポイントの星 */
+  --success: #7fc36a;
+  --danger: #d1564b;
+  --points: #ffd966;
 
-  /* --- カテゴリ6色（lib/task-design.ts の hex と対応） ----- */
-  --category-routine: #f59e0b;
-  --category-health: #10b981;
-  --category-physical: #3b82f6;
-  --category-knowledge: #8b5cf6;
-  --category-activity: #84cc16;
-  --category-creative: #ec4899;
+  /* --- タスクカテゴリ5種（lib/task-design.ts と対応）------- */
+  --category-vitality: #d1564b;
+  --category-intelligence: #5b8fd4;
+  --category-creative: #d4638f;
+  --category-recovery: #7fc36a;
+  --category-quest: #e8a52c;
 
-  /* --- 角丸 ----------------------------------------------- */
-  --r-card: 14px; /* タスクカード */
-  --r-chip: 12px; /* メタ情報チップ */
-  --r-control: 16px; /* ボタン */
-  --r-sheet: 28px; /* モーダル */
+  /* --- 箔（虹）: HARD 以上でだけ使う ---------------------- */
+  --holo-1: #e0464e;
+  --holo-2: #ef8a3c;
+  --holo-3: #f2d24a;
+  --holo-4: #5ec25c;
+  --holo-5: #45c7d6;
+  --holo-6: #4a72cc;
+  --holo-7: #9358c9;
+  --holo-hi: #ffffff;
+  --holo-hi-cool: #bff2ff;
 
-  /* --- 影 ------------------------------------------------- */
-  --e-card: 0 8px 32px rgba(0, 0, 0, 0.35);
-  --e-card-hover: 0 12px 40px rgba(100, 60, 180, 0.25);
-  --e-control: 0 10px 30px rgba(0, 0, 0, 0.35);
-  --e-panel: 0 16px 40px rgba(0, 0, 0, 0.45);
-  --e-sheet: 0 24px 80px rgba(0, 0, 0, 0.55);
+  /* --- 箔（淡）: NORMAL の縁 ------------------------------ */
+  --pastel-cyan: #a8e4ea;
+  --pastel-violet: #c9b6ea;
+  --pastel-pink: #f0bcd4;
+  --pastel-gold: #f0dfa8;
 
-  /* --- GooeyNav の粒子色（JS から var() で直接参照） ------
-   * GooeyNav.tsx が `var(--particle-N)` を組み立てて使う。
-   * Tailwind の --color-* 名前空間と衝突しないよう別名にしている。 */
-  --particle-1: #8e0096;
-  --particle-2: #8c1eff;
-  --particle-3: #8000a7;
-  --particle-4: #ffffff;
+  /* --- プラチナ: EXTRA の放射光 --------------------------- */
+  --plat-spec: #ffffff;
+  --plat-1: #eef2f7;
+  --plat-2: #cdd6e0;
+  --plat-3: #9aa7b8;
+  --plat-4: #6b7787;
+  --plat-5: #414b5a;
 
-  /* --- shadcn 互換トークン（上のパレットに委譲） ---------- */
+  /* --- 半透明（ピクセルでは使いどころを限る）-------------- */
+  --scrim: rgba(0, 0, 0, 0.7);        /* オーバーレイの暗幕。blur は掛けない */
+  --bevel-hi: rgba(255, 255, 255, 0.45); /* ベベルの明るい辺 */
+  --bevel-hi-soft: rgba(255, 255, 255, 0.18);
+
+  /* --- shadcn 互換（上のパレットに委譲）------------------- */
   --background: var(--ground);
   --foreground: var(--ink);
-  --card: var(--veil);
+  --card: var(--panel);
   --card-foreground: var(--ink);
-  --popover: var(--veil-panel);
+  --popover: var(--panel);
   --popover-foreground: var(--ink);
-  --primary: var(--ink);
+  --primary: var(--gold);
   --primary-foreground: var(--ink-inverse);
-  --secondary: var(--surface-2);
+  --secondary: var(--panel-raised);
   --secondary-foreground: var(--ink);
-  --muted: var(--surface-2);
+  --muted: var(--panel-raised);
   --muted-foreground: var(--ink-muted);
-  --accent: var(--surface-3);
-  --accent-foreground: var(--ink);
+  --accent: var(--gold);
+  --accent-foreground: var(--ink-inverse);
   --destructive: var(--danger);
-  --border: var(--line);
-  --input: var(--line-strong);
-  --ring: var(--ink-muted);
-  --radius: 0.625rem;
+  --border: var(--ink-outline);
+  --input: var(--ink-outline);
+  --ring: var(--gold);
+  --radius: 0;
 
-  --chart-1: var(--category-routine);
-  --chart-2: var(--category-health);
-  --chart-3: var(--category-physical);
-  --chart-4: var(--category-knowledge);
-  --chart-5: var(--category-activity);
-
-  --sidebar: var(--veil);
-  --sidebar-foreground: var(--ink);
-  --sidebar-primary: var(--ink);
-  --sidebar-primary-foreground: var(--ink-inverse);
-  --sidebar-accent: var(--surface-3);
-  --sidebar-accent-foreground: var(--ink);
-  --sidebar-border: var(--line);
-  --sidebar-ring: var(--ink-muted);
+  --chart-1: var(--category-vitality);
+  --chart-2: var(--category-intelligence);
+  --chart-3: var(--category-creative);
+  --chart-4: var(--category-recovery);
+  --chart-5: var(--category-quest);
 }
 
 @theme inline {
-  --font-sans: var(--font-sans);
+  --font-pixel-num: "Press Start 2P", monospace;
+  --font-pixel-jp: "DotGothic16", sans-serif;
+  --font-pixel-label: "Silkscreen", monospace;
+  --font-sans: var(--font-pixel-jp);
 
-  /* アプリ固有トークン → Tailwind ユーティリティ
-   * 例: bg-surface-2 / text-ink-muted / border-line / rounded-card / shadow-sheet */
+  /* 色 → bg-* / text-* / border-* */
+  --color-ground-deep: var(--ground-deep);
   --color-ground: var(--ground);
-  --color-aurora-1: var(--aurora-1);
-  --color-aurora-2: var(--aurora-2);
+  --color-ground-warm: var(--ground-warm);
+  --color-ground-lift: var(--ground-lift);
+  --color-panel: var(--panel);
+  --color-panel-raised: var(--panel-raised);
 
-  --color-surface-1: var(--surface-1);
-  --color-surface-2: var(--surface-2);
-  --color-surface-3: var(--surface-3);
-  --color-surface-4: var(--surface-4);
-
-  --color-veil: var(--veil);
-  --color-veil-bar: var(--veil-bar);
-  --color-veil-panel: var(--veil-panel);
-  --color-control: var(--control);
-  --color-field: var(--field);
-  --color-scrim: var(--scrim);
-
-  --color-line-faint: var(--line-faint);
-  --color-line: var(--line);
-  --color-line-strong: var(--line-strong);
-
+  --color-ink-outline: var(--ink-outline);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-muted: var(--ink-muted);
   --color-ink-faint: var(--ink-faint);
   --color-ink-inverse: var(--ink-inverse);
 
+  --color-gold-light: var(--gold-light);
+  --color-gold: var(--gold);
+  --color-gold-dark: var(--gold-dark);
+
+  --color-accent-mint: var(--accent-mint);
+  --color-accent-mint-dark: var(--accent-mint-dark);
+  --color-accent-olive: var(--accent-olive);
+  --color-accent-olive-dark: var(--accent-olive-dark);
+  --color-accent-rust: var(--accent-rust);
+  --color-accent-rust-dark: var(--accent-rust-dark);
+  --color-accent-sand: var(--accent-sand);
+  --color-accent-sand-dark: var(--accent-sand-dark);
+  --color-accent-lilac: var(--accent-lilac);
+  --color-accent-lilac-dark: var(--accent-lilac-dark);
+
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-points: var(--points);
 
-  --color-category-routine: var(--category-routine);
-  --color-category-health: var(--category-health);
-  --color-category-physical: var(--category-physical);
-  --color-category-knowledge: var(--category-knowledge);
-  --color-category-activity: var(--category-activity);
+  --color-category-vitality: var(--category-vitality);
+  --color-category-intelligence: var(--category-intelligence);
   --color-category-creative: var(--category-creative);
+  --color-category-recovery: var(--category-recovery);
+  --color-category-quest: var(--category-quest);
 
-  --radius-card: var(--r-card);
-  --radius-chip: var(--r-chip);
-  --radius-control: var(--r-control);
-  --radius-sheet: var(--r-sheet);
+  --color-scrim: var(--scrim);
+  --color-bevel-hi: var(--bevel-hi);
+  --color-bevel-hi-soft: var(--bevel-hi-soft);
 
-  --shadow-card: var(--e-card);
-  --shadow-card-hover: var(--e-card-hover);
-  --shadow-control: var(--e-control);
-  --shadow-panel: var(--e-panel);
-  --shadow-sheet: var(--e-sheet);
+  /* 余白 → gap-* / p-* / m-* */
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+
+  /* 角丸は全て 0。ピクセルUIに丸みはない（§1） */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
 
   /* shadcn 互換 */
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   /* iOS Safari 対策: 100vh を使わない / 意図しないスクロールを止める
-   * 詳細は docs/ai-error-log.md（2026-03-11 の3件）を参照 */
+   * 経緯は docs/ai-error-log.md（2026-03-11 の3件） */
   html {
-    @apply font-sans;
     overflow: hidden;
     overscroll-behavior: none;
     height: 100dvh;
     width: 100%;
     position: fixed;
   }
+
   body {
     @apply bg-background text-foreground;
     overscroll-behavior: none;
+    font-family: var(--font-pixel-jp);
+
+    /* ピクセルフォントはアンチエイリアスが掛かるとぼやける。必ず切る
+     * （docs/pixel-style-guide.md §3） */
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: geometricPrecision;
+  }
+
+  /* ドット絵は補間させない */
+  img,
+  svg {
+    image-rendering: pixelated;
+  }
+}
+
+@layer utilities {
+  /* 書体の役割は固定（§3）。混ぜて使わない */
+  .font-num {
+    font-family: var(--font-pixel-num);
+  }
+  .font-label {
+    font-family: var(--font-pixel-label);
+    letter-spacing: 0.08em;
+  }
+
+  /* 立体パネル。光源は常に左上（§4.1）
+   * ぼかし影は使わず、3px ずらした単色で表現する */
+  .pixel-panel {
+    border: var(--border-w) solid var(--ink-outline);
+    border-radius: 0;
+    box-shadow:
+      inset 0 var(--border-w) 0 0 var(--bevel-hi-soft),
+      inset 0 calc(var(--border-w) * -1) 0 0 rgba(0, 0, 0, 0.35);
+  }
+
+  /* 押された状態はベベルを反転させる */
+  .pixel-panel-pressed {
+    box-shadow:
+      inset 0 var(--border-w) 0 0 rgba(0, 0, 0, 0.35),
+      inset 0 calc(var(--border-w) * -1) 0 0 var(--bevel-hi-soft);
+  }
+
+  /* 色帯の境界をつなぐ 6px 市松（§4.2）
+   * グラデーションの代わり。ランタイム blur を使わない */
+  .pixel-dither {
+    background-image:
+      linear-gradient(45deg, currentColor 25%, transparent 25%, transparent 75%, currentColor 75%),
+      linear-gradient(45deg, currentColor 25%, transparent 25%, transparent 75%, currentColor 75%);
+    background-size: var(--space-2) var(--space-2);
+    background-position: 0 0, var(--space-1) var(--space-1);
+  }
+
+  /* 明滅・出現・消失は補間しない（§8.1）
+   * 半透明の中間フレームが出るとピクセルが崩れる */
+  .pixel-step {
+    transition-timing-function: steps(1, end);
+  }
+}
+
+/* ============================================================
+ * レア度エフェクトの動き（docs/pixel-style-guide.md §9.7.2.3）
+ *
+ * すべて `steps(1)` で切り替える。補間すると半透明の中間が出て
+ * ピクセルが崩れる。光線は回転させず、位相違いの2コマを交互に見せる。
+ * ============================================================ */
+
+@keyframes pixel-blink {
+  0%,
+  49.99% {
+    opacity: 0;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 2コマのコマ送り。片方が出ている間もう片方は消えている */
+@keyframes pixel-frame-toggle {
+  0%,
+  49.99% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.pixel-sparkle {
+  animation: pixel-blink 1.2s steps(1, end) infinite;
+}
+
+.pixel-rays {
+  animation: pixel-frame-toggle 0.64s steps(1, end) infinite;
+}
+
+/* 動きを減らす設定なら止める。静止状態でも成立する見た目にしてある */
+@media (prefers-reduced-motion: reduce) {
+  .pixel-sparkle,
+  .pixel-rays {
+    animation: none;
+  }
+  .pixel-rays:nth-of-type(2) {
+    opacity: 0;
   }
 }

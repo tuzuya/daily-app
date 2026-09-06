@@ -457,6 +457,51 @@ INTELLIGENCE  ■■■■■■■□□□  480
   獲得と消費のルールが未決のため
 - **設定**: 枠だけ。実体のある設定項目はまだ1つも無い
 
+### 9.9 LOGIN と ログイン後の演出
+
+**LOGIN — Title**: RPG のタイトル画面として組む。
+アバターのシルエット → タイトル → 入力欄 → 主ボタン → 副導線。
+ログイン前なので**下部ナビは出さない**。
+
+**LOGIN — Welcome**: ログイン直後の演出（`ai-product-brief.md` §4.5）。
+EXTRA と同じ `Plat/RaysA` / `RaysB` を流用し、アバターを大きく見せる。
+アバター本体はベータ後（§4.7）なのでシルエットのまま。
+文字は 0.6s から時間差で出す。全体 2.4s。
+
+> **アプリ名は未決。** モックでは仮に `DAILY QUEST` としているが、
+> 正式名称は決まっていない（`layout.tsx` の metadata は旧デザイン時代の
+> `Cyber Todo` のまま）。**決めてから差し替えること。**
+
+### 9.10 状態の表示（Empty / Loading / Error / Saving）
+
+`State/Pixel`（354×186、Empty / Loading / Error）。
+一覧やカルーセルが中身を出せないときに、その場所に置く。
+
+| 状態 | スプライト | 枠 | 補足 |
+|---|---|---|---|
+| Empty | からっぽの箱 | `ink/outline` | ＋ボタンへ誘導する |
+| Loading | 砂時計 **4コマ** | `ink/outline` | 点が増える表現も付ける |
+| Error | ビックリマーク | **`danger`** | 「もういちど」ボタン付き |
+
+**★ Error の枠は必ず `danger` 色にする。** 現行コードは fetch 失敗を
+`setTasks([])` で握りつぶしていて、**通信エラーと0件を区別できない**。
+見た目で必ず区別が付くようにする。
+
+**Loading は回さずコマ送り。** 砂が落ちる4コマを 0.3s ずつ `HOLD` で
+切り替える。なめらかなスピナーはピクセルに合わない。
+
+**Saving** は独立した部品ではなく `Overlay/Form` の Mode。
+ボタンから**ベベルを外し、金→暗い面**にして押せないことを示す。
+金のままだと押せそうに見える。
+
+### 9.11 TopMenu の展開
+
+`TopMenu/Pixel`（180×120）。☰ を押すと出るドロップダウン。ルートは持たない。
+
+- 項目: `ステータス`（Profile へ）/ `ログアウト`（`danger` 色）
+- 開いている間、**☰ ボタン自身を金地に反転**させて状態を示す
+- 背景の暗幕は `--scrim` のベタ塗り。**blur をかけない**（§10.3）
+
 ### 9.5 Figma のコンポーネント一覧
 
 | 名前 | 用途 |
@@ -467,7 +512,9 @@ INTELLIGENCE  ■■■■■■■□□□  480
 | `CardRow/Pixel` | 一覧の行 |
 | `NavItem/Pixel` | 下部ナビのタブ（State: Active / Inactive） |
 | `Overlay/Detail` | タスク詳細・閲覧（Source: List / Today） |
-| `Overlay/Form` | タスクの入力（Mode: Create / Edit） |
+| `Overlay/Form` | タスクの入力（Mode: Create / Edit / **Saving**） |
+| `State/Pixel` | 空・読込中・エラー（§9.10） |
+| `TopMenu/Pixel` | ☰ のドロップダウン（§9.11） |
 | （PROFILE のバーは生成物なのでコンポーネント化していない。§9.8） |  |
 | `TriageRow/Pixel` | 日跨ぎの仕分け行（Choice: Today / Later） |
 （箔は生成した縞なのでコンポーネント化していない。§9.7 参照）

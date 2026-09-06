@@ -1,12 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import type { Task } from "@/types/task";
-import { completeTask, useTasks } from "@/lib/use-tasks";
+import {
+  completeTask,
+  createTask,
+  deleteTask,
+  updateTask,
+  useTasks,
+  type TaskInput,
+} from "@/lib/use-tasks";
 import TaskCarousel from "../components/TaskCarousel";
 import DropSlot from "../components/DropSlot";
 import StateBlock from "../components/StateBlock";
 import QuestClearFx from "../components/QuestClearFx";
+import TopBar from "../components/TopBar";
+import TaskFormOverlay from "../components/TaskFormOverlay";
+import { useTotalXp } from "@/lib/use-total-xp";
 
 /**
  * HOME。当日のタスクを扇状のカルーセルで見せ、
@@ -17,33 +27,19 @@ import QuestClearFx from "../components/QuestClearFx";
  */
 export default function TodayPage() {
   const { tasks, loading, error, refetch, removeLocal } = useTasks("today");
+  const { totalXp, add: addXp, reload: reloadXp } = useTotalXp();
+
   const [dropProgress, setDropProgress] = useState(0);
   /** 達成エフェクトはルートを持たないオーバーレイ（§5.2） */
   const [cleared, setCleared] = useState<Task | null>(null);
-  const [totalXp, setTotalXp] = useState(0);
-  /* カルーセル下のバーは廃止し、位置は見出しの «2 / 4» で示す。
-   * バーはドロップの通り道に重なり、カードがその下へ潜って見えるため。 */
   const [activeIndex, setActiveIndex] = useState(0);
+  /** null = 閉、"new" = 作成、Task = 編集 */
+  const [form, setForm] = useState<"new" | Task | null>(null);
 
-  /* 達成時に「増える前のXP」を見せたいので、総XPを持っておく。
-   * LV/EXP の供給元が未決なので、いまは完了タスクの合計で代用する
-   * （docs/ai-product-brief.md §7.1 c）。 */
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/tasks?includeDone=1")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        const done = (data.tasks as Task[]).filter((t) => t.done);
-        setTotalXp(done.reduce((sum, t) => sum + t.points, 0));
-      })
-      .catch(() => {
-        // XP は演出用なので、取れなくても達成自体は妨げない
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  /* 見出しの «DAY N»。初回起動からの日数が出せるまでは日付で代用する。
+   * lazy initializer で持つ。effect で setState するとカスケードを招く。
+   * 日付はローカル基準（docs/ai-dev-guide.md §8.2）。 */
+  const [day] = useState(() => new Date().getDate());
 
   const handleComplete = useCallback(
     async (task: Task) => {
@@ -52,40 +48,65 @@ export default function TodayPage() {
       setCleared(task);
       try {
         await completeTask(task.id);
-        setTotalXp((xp) => xp + task.points);
+        addXp(task.points);
       } catch {
         refetch();
       }
     },
-    [removeLocal, refetch],
+    [removeLocal, refetch, addXp],
   );
+
+  const submitForm = async (v: TaskInput) => {
+    if (form === "new") await createTask(v, "today");
+    else if (form) await updateTask(form.id, v);
+    setForm(null);
+    refetch();
+    reloadXp();
+  };
+
+  const removeTask = async () => {
+    if (!form || form === "new") return;
+    await deleteTask(form.id);
+    setForm(null);
+    refetch();
+  };
 
   const remaining = tasks.length;
 
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-[390px] flex-col px-[18px] pb-6 pt-[52px]">
-      <header className="mb-6 text-center">
-        <p className="font-label text-[10px] text-gold">TODAY</p>
-        <h1 className="mt-2 text-[24px] leading-[34px] text-ink">
-          今日のクエスト
-        </h1>
-        {!loading && !error && (
-          <p className="mt-1 flex items-center justify-center gap-3 text-[11px] text-ink-muted">
-            {remaining > 0 && (
-              <span className="font-num text-[10px] text-gold">
-                {Math.min(activeIndex + 1, remaining)} / {remaining}
-              </span>
-            )}
-            <span>
-              {remaining > 0 ? `のこり ${remaining}つ` : "ぜんぶ おわった"}
-            </span>
+    <>
+      <TopBar totalXp={totalXp} onAdd={() => setForm("new")} />
+
+      <div className="mx-auto flex w-full max-w-[390px] flex-col px-[18px] pb-6">
+        <header className="mb-[10px] mt-[30px]">
+          <p className="font-label text-[10px] text-gold">
+            DAY {day}
           </p>
-        )}
-      </header>
+          {/* 3px ずらした影。ピクセルの見出しはこれで奥行きが出る */}
+          <h1 className="relative mt-2 text-[24px] leading-[34px] text-ink">
+            <span
+              aria-hidden="true"
+              className="absolute left-[3px] top-[3px] text-ink-outline"
+            >
+              今日のクエスト
+            </span>
+            <span className="relative">今日のクエスト</span>
+          </h1>
+          {!loading && !error && (
+            <p className="mt-1 flex items-center gap-3 text-[14px] text-ink-muted">
+              {remaining > 0 && (
+                <span className="font-num text-[10px] text-gold">
+                  {Math.min(activeIndex + 1, remaining)} / {remaining}
+                </span>
+              )}
+              <span>
+                {remaining > 0 ? `のこり ${remaining}つ` : "ぜんぶ おわった"}
+              </span>
+            </p>
+          )}
+        </header>
 
-      <div className="flex-1">
         {loading && <StateBlock kind="loading" />}
-
         {!loading && error && <StateBlock kind="error" onRetry={refetch} />}
 
         {!loading && !error && tasks.length === 0 && (
@@ -106,13 +127,14 @@ export default function TodayPage() {
             <div className="relative z-0">
               <TaskCarousel
                 tasks={tasks}
+                onSelect={(t) => setForm(t)}
                 onComplete={handleComplete}
                 onDropProgress={setDropProgress}
                 onActiveChange={setActiveIndex}
               />
             </div>
 
-            <div className="relative z-10 mt-6">
+            <div className="relative z-10 mt-3">
               <DropSlot progress={dropProgress} />
             </div>
           </div>
@@ -122,10 +144,20 @@ export default function TodayPage() {
       {cleared && (
         <QuestClearFx
           task={cleared}
-          xpBefore={totalXp}
+          xpBefore={totalXp - cleared.points}
           onDismiss={() => setCleared(null)}
         />
       )}
-    </div>
+
+      {form && (
+        <TaskFormOverlay
+          task={form === "new" ? undefined : form}
+          screen="today"
+          onClose={() => setForm(null)}
+          onSubmit={submitForm}
+          onDelete={form === "new" ? undefined : removeTask}
+        />
+      )}
+    </>
   );
 }

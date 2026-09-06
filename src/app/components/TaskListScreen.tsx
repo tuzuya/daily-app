@@ -4,9 +4,19 @@ import { useMemo, useState } from "react";
 import type { Task, TaskCategory, TaskScreen } from "@/types/task";
 import { CATEGORY_DESIGNS } from "@/lib/task-design";
 import { categorySpriteUrl } from "@/lib/pixel-sprites";
-import { moveTaskToToday, useTasks } from "@/lib/use-tasks";
+import {
+  createTask,
+  deleteTask,
+  moveTaskToToday,
+  updateTask,
+  useTasks,
+  type TaskInput,
+} from "@/lib/use-tasks";
+import { useTotalXp } from "@/lib/use-total-xp";
 import CardRow from "./CardRow";
 import StateBlock from "./StateBlock";
+import TopBar from "./TopBar";
+import TaskFormOverlay from "./TaskFormOverlay";
 
 /**
  * Next / Overdue / Buffs で共通の一覧画面（docs/pixel-style-guide.md §9.2）。
@@ -65,16 +75,22 @@ export default function TaskListScreen({
   meta = "none",
 }: TaskListScreenProps) {
   const { tasks, loading, error, refetch, removeLocal } = useTasks(screen);
+  const { totalXp, reload: reloadXp } = useTotalXp();
   const [filter, setFilter] = useState<Filter>("all");
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** null = 閉、"new" = 作成、Task = 詳細/編集 */
+  const [form, setForm] = useState<"new" | Task | null>(null);
 
   const shown = useMemo(
     () => (filter === "all" ? tasks : tasks.filter((t) => t.category === filter)),
     [tasks, filter],
   );
 
-  const send = async (task: Task) => {
+  /* 行タップで詳細を開き、そこから Today に送る（§10.2）。
+   * 行タップで即移動にすると、間違って触ったときに戻せない。 */
+  const sendToToday = async (task: Task) => {
     setBusyId(task.id);
+    setForm(null);
     removeLocal(task.id);
     try {
       await moveTaskToToday(task.id);
@@ -85,8 +101,26 @@ export default function TaskListScreen({
     }
   };
 
+  const submitForm = async (v: TaskInput) => {
+    if (form === "new") await createTask(v, screen);
+    else if (form) await updateTask(form.id, v);
+    setForm(null);
+    refetch();
+    reloadXp();
+  };
+
+  const removeTask = async () => {
+    if (!form || form === "new") return;
+    await deleteTask(form.id);
+    setForm(null);
+    refetch();
+  };
+
   return (
-    <div className="mx-auto w-full max-w-[390px] px-[18px] pb-6 pt-[52px]">
+    <>
+      <TopBar totalXp={totalXp} onAdd={() => setForm("new")} />
+
+      <div className="mx-auto w-full max-w-[390px] px-[18px] pb-6 pt-[30px]">
       <header className="mb-4">
         <p
           className={[
@@ -171,12 +205,26 @@ export default function TaskListScreen({
               <CardRow
                 task={task}
                 meta={metaLabel(task, meta)}
-                onPress={() => send(task)}
+                onPress={() => setForm(task)}
               />
             </li>
           ))}
         </ul>
       )}
-    </div>
+      </div>
+
+      {form && (
+        <TaskFormOverlay
+          task={form === "new" ? undefined : form}
+          screen={screen}
+          onClose={() => setForm(null)}
+          onSubmit={submitForm}
+          onDelete={form === "new" ? undefined : removeTask}
+          onSendToToday={
+            form === "new" ? undefined : () => sendToToday(form)
+          }
+        />
+      )}
+    </>
   );
 }

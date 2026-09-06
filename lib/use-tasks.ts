@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Task, TaskScreen } from "@/types/task";
+import type { Task, TaskCategory, TaskLevel, TaskScreen } from "@/types/task";
+import { LEVELS } from "./task-design";
 
 /**
  * 画面ごとのタスク取得。旧 `SpaceNavigator.useTasksForScreen` を移設したもの。
@@ -105,4 +106,55 @@ export async function completeTask(id: string): Promise<void> {
     body: JSON.stringify({ done: true }),
   });
   if (!res.ok) throw new Error("達成の記録に失敗しました");
+}
+
+/** フォームの入力を API の形へ。難易度 → points の変換はここ1箇所に持つ */
+export type TaskInput = {
+  title: string;
+  description: string;
+  category: TaskCategory;
+  level: TaskLevel;
+  hours: number;
+  minutes: number;
+};
+
+function toPayload(v: TaskInput) {
+  const points = LEVELS.find((l) => l.value === v.level)?.points ?? 10;
+  const estimated = v.hours * 60 + v.minutes;
+  return {
+    title: v.title.trim(),
+    description: v.description.trim() || null,
+    category: v.category,
+    points,
+    estimatedMinutes: estimated > 0 ? estimated : null,
+  };
+}
+
+export async function createTask(
+  v: TaskInput,
+  screen: TaskScreen,
+): Promise<Task> {
+  const res = await fetch("/api/tasks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...toPayload(v), screen }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? "追加に失敗しました");
+  }
+  return (await res.json()).task as Task;
+}
+
+export async function updateTask(id: string, v: TaskInput): Promise<Task> {
+  const res = await fetch(`/api/tasks/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(toPayload(v)),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? "保存に失敗しました");
+  }
+  return (await res.json()).task as Task;
 }

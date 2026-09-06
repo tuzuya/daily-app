@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Press_Start_2P, DotGothic16, Silkscreen } from "next/font/google";
 import PixelNav from "./components/PixelNav";
-import PixelTopMenu from "./components/PixelTopMenu";
 import PixelBackground from "./components/PixelBackground";
 import "./global.css";
 
@@ -67,12 +66,7 @@ export default function RootLayout({
           {children}
         </main>
 
-        {/* 右上のメニュー。画面の上に浮かせる */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-50 flex justify-end p-4">
-          <div className="pointer-events-auto">
-            <PixelTopMenu />
-          </div>
-        </div>
+        {/* ☰ は各画面の TopBar が持つ。浮かせると EXP ゲージと重なる */}
 
         <PixelNav />
       </body>

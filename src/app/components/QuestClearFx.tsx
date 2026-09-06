@@ -20,7 +20,14 @@ import { burstStamp, EXP_SEGMENTS, speedLines } from "@/lib/pixel-fx";
 // §8.4 の対応表
 const EASE_OUT_BACK = [0.34, 1.56, 0.64, 1] as const;
 const EASE_IN = [0.42, 0, 1, 1] as const;
-const BOUNCY = { type: "spring", stiffness: 300, damping: 12 } as const;
+
+/* Figma の `BOUNCY` は spring だが、**framer-motion の spring は
+ * キーフレームを2点しか扱えない**（3点以上で
+ * "Only two keyframes currently supported with spring" が出る）。
+ * 3点のキーフレームで弾ませたい場合は、区間ごとの easing 配列を使い、
+ * 行き過ぎて戻る cubic-bezier で代用する。
+ * 単純な2点間の動きなら spring をそのまま使ってよい。 */
+const BOUNCE_SETTLE = [0.34, 1.8, 0.64, 1] as const;
 
 /* Figma の `HOLD` に相当する easing。区間の最後まで前の値を保ち、
  * 終端で次の値へ飛ぶ（= steps(1, end)）。
@@ -116,7 +123,14 @@ export default function QuestClearFx({
         animate={{ opacity: 1, scale: [0.2, 1.3, 1] }}
         transition={{
           opacity: { delay: 0.1, duration: 0.04, ease: HOLD },
-          scale: { delay: 0.1, times: [0, 0.48, 1], duration: 0.42, ...BOUNCY },
+          /* 区間ごとに easing を指定する（§8.3: 0.2 →EASE_OUT→ 1.3 →BOUNCY→ 1）。
+           * 配列の要素数はキーフレームの区間数と一致させる。 */
+          scale: {
+            delay: 0.1,
+            times: [0, 0.48, 1],
+            duration: 0.42,
+            ease: ["easeOut", BOUNCE_SETTLE],
+          },
         }}
       >
         CLEAR!

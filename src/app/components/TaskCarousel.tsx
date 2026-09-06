@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, type PanInfo } from "framer-motion";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Task } from "@/types/task";
 import TaskCard from "./TaskCard";
 
@@ -79,8 +79,19 @@ export default function TaskCarousel({
   const [activeIndex, setActiveIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
   const [dropY, setDropY] = useState(0);
-  const [axis, setAxis] = useState<Axis>("none");
   const [dragging, setDragging] = useState(false);
+
+  /* 縦横どちらの操作かは **ref で持つ**。state だと素早く弾いたとき、
+   * onDrag で決めた値が onDragEnd までに反映されず、
+   * 下方向のドラッグが横スワイプとして処理されて達成にならない
+   * （React の state 更新は非同期なので、同じフレーム内では読めない）。
+   * 表示のためだけに state のコピーも持つ。 */
+  const axisRef = useRef<Axis>("none");
+  const [axis, setAxis] = useState<Axis>("none");
+  const setAxisBoth = useCallback((a: Axis) => {
+    axisRef.current = a;
+    setAxis(a);
+  }, []);
 
   const count = tasks.length;
   const clamp = useCallback(
@@ -105,7 +116,7 @@ export default function TaskCarousel({
   const reset = () => {
     setDragOffset(0);
     setDropY(0);
-    setAxis("none");
+    setAxisBoth("none");
     setDragging(false);
     onDropProgress?.(0);
   };
@@ -115,12 +126,12 @@ export default function TaskCarousel({
   const onDrag = (_: unknown, info: PanInfo) => {
     // 最初の一定量で縦横どちらの操作かを確定させる。
     // 決めないと、斜めに動かしたときカルーセルと達成が同時に反応する
-    let current = axis;
+    let current = axisRef.current;
     if (current === "none") {
       const { x, y } = info.offset;
       if (Math.abs(x) < AXIS_LOCK && Math.abs(y) < AXIS_LOCK) return;
       current = Math.abs(y) > Math.abs(x) ? "y" : "x";
-      setAxis(current);
+      setAxisBoth(current);
     }
 
     if (current === "x") {
@@ -143,7 +154,15 @@ export default function TaskCarousel({
   };
 
   const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (axis === "y") {
+    /* ref を見る。state だと1フレーム遅れて "none" のままのことがある。
+     * 方向が未確定なら、移動量から判断し直す（一瞬で弾いた場合） */
+    let current = axisRef.current;
+    if (current === "none") {
+      const { x, y } = info.offset;
+      current = Math.abs(y) > Math.abs(x) ? "y" : "x";
+    }
+
+    if (current === "y") {
       if (info.offset.y >= DROP_THRESHOLD && tasks[activeIndex]) {
         onComplete?.(tasks[activeIndex]);
       }
@@ -151,7 +170,7 @@ export default function TaskCarousel({
       return;
     }
 
-    if (axis === "x") {
+    if (current === "x") {
       const dragCards = -info.offset.x / DRAG_PX_PER_CARD;
       const velocityCards = -info.velocity.x / VELOCITY_PER_CARD;
       const next = clamp(activeIndex + Math.round(dragCards + velocityCards));

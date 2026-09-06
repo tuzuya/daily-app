@@ -21,6 +21,9 @@ export default function TodayPage() {
   /** 達成エフェクトはルートを持たないオーバーレイ（§5.2） */
   const [cleared, setCleared] = useState<Task | null>(null);
   const [totalXp, setTotalXp] = useState(0);
+  /* カルーセル下のバーは廃止し、位置は見出しの «2 / 4» で示す。
+   * バーはドロップの通り道に重なり、カードがその下へ潜って見えるため。 */
+  const [activeIndex, setActiveIndex] = useState(0);
 
   /* 達成時に「増える前のXP」を見せたいので、総XPを持っておく。
    * LV/EXP の供給元が未決なので、いまは完了タスクの合計で代用する
@@ -67,8 +70,15 @@ export default function TodayPage() {
           今日のクエスト
         </h1>
         {!loading && !error && (
-          <p className="mt-1 text-[11px] text-ink-muted">
-            {remaining > 0 ? `のこり ${remaining}つ` : "ぜんぶ おわった"}
+          <p className="mt-1 flex items-center justify-center gap-3 text-[11px] text-ink-muted">
+            {remaining > 0 && (
+              <span className="font-num text-[10px] text-gold">
+                {Math.min(activeIndex + 1, remaining)} / {remaining}
+              </span>
+            )}
+            <span>
+              {remaining > 0 ? `のこり ${remaining}つ` : "ぜんぶ おわった"}
+            </span>
           </p>
         )}
       </header>
@@ -98,6 +108,7 @@ export default function TodayPage() {
                 tasks={tasks}
                 onComplete={handleComplete}
                 onDropProgress={setDropProgress}
+                onActiveChange={setActiveIndex}
               />
             </div>
 

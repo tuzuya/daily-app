@@ -65,8 +65,8 @@ export type TaskCarouselProps = {
   onComplete?: (task: Task) => void;
   /** 引っ張り具合（0..1）。ドロップ枠を光らせるのに使う */
   onDropProgress?: (progress: number) => void;
-  /** 下のページ表示を出すか */
-  showPager?: boolean;
+  /** 中央のカードが変わったとき。見出しの「2 / 4」表示に使う */
+  onActiveChange?: (index: number) => void;
 };
 
 export default function TaskCarousel({
@@ -74,7 +74,7 @@ export default function TaskCarousel({
   onSelect,
   onComplete,
   onDropProgress,
-  showPager = false,
+  onActiveChange,
 }: TaskCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
@@ -86,6 +86,17 @@ export default function TaskCarousel({
   const clamp = useCallback(
     (i: number) => Math.max(0, Math.min(count - 1, i)),
     [count],
+  );
+
+  /* 位置の表示は親（見出しの «2 / 4»）が持つ。
+   * カルーセル下のバーは廃止した。ドロップの通り道に重なり、
+   * カードがバーの下へ潜って不自然に見えるため。 */
+  const setActive = useCallback(
+    (i: number) => {
+      setActiveIndex(i);
+      onActiveChange?.(i);
+    },
+    [onActiveChange],
   );
 
   const displayIndex = activeIndex + dragOffset;
@@ -144,7 +155,7 @@ export default function TaskCarousel({
       const dragCards = -info.offset.x / DRAG_PX_PER_CARD;
       const velocityCards = -info.velocity.x / VELOCITY_PER_CARD;
       const next = clamp(activeIndex + Math.round(dragCards + velocityCards));
-      setActiveIndex(next);
+      setActive(next);
     }
     reset();
   };
@@ -216,22 +227,6 @@ export default function TaskCarousel({
         </motion.div>
       </div>
 
-      {showPager && count > 1 && (
-        <div className="mt-2 flex justify-center gap-[6px]">
-          {tasks.map((t, i) => (
-            <button
-              key={t.id}
-              type="button"
-              aria-label={`${i + 1}枚目`}
-              onClick={() => setActiveIndex(clamp(i))}
-              className={[
-                "h-[9px]",
-                i === activeIndex ? "w-[30px] bg-gold" : "w-[9px] bg-ink-faint",
-              ].join(" ")}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

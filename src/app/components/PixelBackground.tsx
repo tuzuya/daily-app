@@ -1,15 +1,25 @@
 /**
- * 画面の地。**水平の色帯 + 境界のディザリング**でできている
- * （docs/pixel-style-guide.md §2.1 の地色4種と §4.2）。
+ * 画面の地。**水平の色帯 + 境界のディザリング**でできている。
  *
- * これが無いと画面が単色になり、参考画像の「奥行きのある暖色の空間」が
- * 出ない。ピクセルアートではグラデーションを使わないので、
- * **帯を並べて境界を市松で散らす**のが唯一の階調表現になる（§1）。
+ * 帯の高さ・色・境界の位置は Figma の `HOME — Today (Pixel)` の
+ * `bg/*` レイヤーから写した実測値（390×844 基準）。
+ * 目分量で置くと参考画像の奥行きが出ないので、**数値は Figma を正**とする。
  *
- * サーバーコンポーネント。状態を持たないので JS を送る必要がない。
+ * | 帯 | y | 色 |
+ * |---|---|---|
+ * | deep-top | 0–148 | `#221c12` |
+ * | mid | 148–250 | `#3b3122` |
+ * | warm | 250–500 | `#5c4d33` ← カードが乗る |
+ * | lower | 500–744 | `#3b3122` |
+ * | 棚の縁 | 616 / 619 | `#7a6743` / `#14100a` |
+ *
+ * ピクセルアートではグラデーションを使わないので（§1）、
+ * **帯を並べて境界を市松で散らす**のが唯一の階調表現になる（§4.2）。
+ *
+ * サーバーコンポーネント。状態を持たないので JS を送らない。
  */
 
-/** 6px セルの市松。上の色を下の帯に散らして境界をつなぐ */
+/** 6px セルの市松。**上の帯の色**を下の帯へ散らして境界をつなぐ（§4.2） */
 function ditherUrl(color: string, cell = 6): string {
   const s = cell * 2;
   const svg =
@@ -21,45 +31,57 @@ function ditherUrl(color: string, cell = 6): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
-/** 帯の境界。上の色を 12px（2行）ぶん下の帯へ散らす */
-function Dither({ color }: { color: string }) {
+function Dither({ color, top }: { color: string; top: number }) {
   return (
     <span
       aria-hidden="true"
-      className="block h-[12px] w-full"
-      style={{ backgroundImage: ditherUrl(color), backgroundSize: "12px 12px" }}
+      className="absolute inset-x-0 block h-[12px]"
+      style={{
+        top,
+        backgroundImage: ditherUrl(color),
+        backgroundSize: "12px 12px",
+      }}
     />
   );
 }
 
-/**
- * 帯の構成（上から）:
- *   deep → ground → warm（カードが乗る明るい帯）→ ground → deep
- * warm の上端に lift のハイライトを 3px 入れて「棚」に見せる。
- */
 export default function PixelBackground() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 -z-10 flex flex-col bg-ground"
+      className="pointer-events-none absolute inset-0 -z-10 bg-ground"
     >
-      <span className="block h-[64px] w-full shrink-0 bg-ground-deep" />
-      <Dither color="var(--ground-deep)" />
-
-      <span className="block w-full flex-1 bg-ground" />
-
-      {/* 棚の上端。光が当たっている縁 */}
-      <Dither color="var(--ground)" />
-      <span className="block h-[3px] w-full shrink-0 bg-ground-lift" />
-
+      <span
+        className="absolute inset-x-0 top-0 block h-[148px] bg-ground-deep"
+      />
+      <span
+        className="absolute inset-x-0 block h-[102px] bg-ground"
+        style={{ top: 148 }}
+      />
       {/* カードが乗る明るい暖色帯 */}
-      <span className="block h-[168px] w-full shrink-0 bg-ground-warm" />
+      <span
+        className="absolute inset-x-0 block h-[250px] bg-ground-warm"
+        style={{ top: 250 }}
+      />
+      {/* 残りは下端まで伸ばす。画面高が 844 でなくても破綻しないように */}
+      <span
+        className="absolute inset-x-0 bottom-0 block bg-ground"
+        style={{ top: 500 }}
+      />
 
-      <Dither color="var(--ground-warm)" />
-      <span className="block h-[96px] w-full shrink-0 bg-ground" />
+      <Dither color="var(--ground-deep)" top={148} />
+      <Dither color="var(--ground)" top={250} />
+      <Dither color="var(--ground-warm)" top={500} />
 
-      <Dither color="var(--ground)" />
-      <span className="block h-[40px] w-full shrink-0 bg-ground-deep" />
+      {/* 棚の縁。ドロップ枠の背後を通り、枠が棚に載って見える */}
+      <span
+        className="absolute inset-x-0 block h-[3px] bg-ground-lift"
+        style={{ top: 616 }}
+      />
+      <span
+        className="absolute inset-x-0 block h-[3px] bg-ink-outline"
+        style={{ top: 619 }}
+      />
     </div>
   );
 }

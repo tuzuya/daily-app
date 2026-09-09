@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { Task } from "@/types/task";
 import { categoryDesign, inferLevel } from "@/lib/task-design";
-import { categorySpriteUrl, starsSize, starsUrl } from "@/lib/pixel-sprites";
+import { categorySpriteUrl, difficultySize, difficultyUrl } from "@/lib/pixel-sprites";
 import { holoStripe, PASTEL, platinumRays, sparkle } from "@/lib/pixel-foil";
 
 /**
@@ -32,7 +32,7 @@ export type TaskCardProps = {
 export default function TaskCard({ task, onPress }: TaskCardProps) {
   const design = categoryDesign(task.category);
   const level = inferLevel(task.points);
-  const starCount = { easy: 1, normal: 2, hard: 3, extra: 4 }[level];
+  const markCount = { easy: 1, normal: 2, hard: 3, extra: 4 }[level];
 
   const isExtra = level === "extra";
   const isHard = level === "hard";
@@ -47,9 +47,11 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
     [isExtra],
   );
 
-  // 箔の上では明るいスプライトが消えるので暗いシルエットにする
-  const spriteColor = hasFoil ? "#14100a" : design.hex;
-  const sprite = categorySpriteUrl(task.category, spriteColor, 3);
+  /* カテゴリの絵柄は**難易度によらず種類の色**にする（2026-09-09 決定）。
+   * 以前は箔（HARD/EXTRA）のとき暗いシルエットにしていたが、
+   * 同じカテゴリのカードが難易度で別物に見えてしまっていた。
+   * カテゴリは一目で判別できることを優先する。 */
+  const sprite = categorySpriteUrl(task.category, design.hex, 3);
 
   const inkOnFace = isExtra ? "var(--ink)" : "var(--ink-inverse)";
 
@@ -239,8 +241,8 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
         style={{
           left: 9,
           top: 154,
-          ...starsSize(starCount),
-          backgroundImage: starsUrl(starCount, isExtra ? "#f4ecd8" : "#14100a"),
+          ...difficultySize(markCount),
+          backgroundImage: difficultyUrl(markCount, isExtra ? "#f4ecd8" : "#14100a"),
           backgroundRepeat: "no-repeat",
         }}
         aria-hidden="true"

@@ -74,10 +74,13 @@ const CELLS: Record<TaskCategory, string[]> = {
 };
 
 /**
- * 星。**難易度の段階数だけ並べる**（EASY=1 … EXTRA=4）。
+ * 難易度マークの菱形。**難易度の段階数だけ並べる**（EASY=1 … EXTRA=4）。
  * 5×5セル = 15px、ピッチ 18px。Figma の `task/difficulty`（51px = 3つ）と一致する。
+ *
+ * 関数名を字形（star / gem）で持つと、形を変えるたびに改名が要る。
+ * Figma のレイヤー名に合わせて `difficulty*` にしてある。
  */
-const STAR = ["..x..", ".xxx.", "xxxxx", ".xxx.", ".x.x."];
+const MARK = ["..x..", ".xxx.", "xxxxx", ".xxx.", "..x.."];
 
 function toSvg(rows: string[], cell: number, color: string): string {
   const w = rows[0].length * cell;
@@ -117,14 +120,14 @@ export function categorySpriteSize(cell = 3): { w: number; h: number } {
   return { w: 12 * cell, h: 10 * cell };
 }
 
-/** 難易度の星を count 個ぶん並べた SVG */
-export function starsUrl(count: number, color: string, cell = 3): string {
+/** 難易度マークを count 個ぶん並べた SVG */
+export function difficultyUrl(count: number, color: string, cell = 3): string {
   const pitch = 6 * cell;
   const w = count * pitch - cell;
   const h = 5 * cell;
   let body = "";
   for (let i = 0; i < count; i++) {
-    STAR.forEach((row, y) => {
+    MARK.forEach((row, y) => {
       for (let x = 0; x < row.length; x++) {
         if (row[x] === "x") {
           body += `<rect x="${i * pitch + x * cell}" y="${
@@ -141,11 +144,11 @@ export function starsUrl(count: number, color: string, cell = 3): string {
 }
 
 /**
- * 星並びの寸法。**そのまま style に展開できるよう CSS のキー名で返す。**
- * 以前は `{ w, h }` を返していて、`style={{ ...gemsSize() }}` が
- * 無効なプロパティになり要素のサイズが 0 = 星が見えなかった。
+ * マーク並びの寸法。**そのまま style に展開できるよう CSS のキー名で返す。**
+ * 以前は `{ w, h }` を返していて、`style={{ ...size() }}` が
+ * 無効なプロパティになり要素のサイズが 0 = マークが見えなかった。
  */
-export function starsSize(
+export function difficultySize(
   count: number,
   cell = 3,
 ): { width: number; height: number } {

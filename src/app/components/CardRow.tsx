@@ -2,7 +2,7 @@
 
 import type { Task } from "@/types/task";
 import { categoryDesign, inferLevel } from "@/lib/task-design";
-import { categorySpriteUrl, starsSize, starsUrl } from "@/lib/pixel-sprites";
+import { categorySpriteUrl, difficultySize, difficultyUrl } from "@/lib/pixel-sprites";
 
 /**
  * 一覧用のコンパクトなタスクカード（354×72）。
@@ -22,7 +22,7 @@ export type CardRowProps = {
 export default function CardRow({ task, meta, onPress }: CardRowProps) {
   const design = categoryDesign(task.category);
   const level = inferLevel(task.points);
-  const starCount = { easy: 1, normal: 2, hard: 3, extra: 4 }[level];
+  const markCount = { easy: 1, normal: 2, hard: 3, extra: 4 }[level];
 
   return (
     <button
@@ -86,8 +86,8 @@ export default function CardRow({ task, meta, onPress }: CardRowProps) {
         style={{
           left: 255,
           top: 16,
-          ...starsSize(starCount),
-          backgroundImage: starsUrl(starCount, "#14100a"),
+          ...difficultySize(markCount),
+          backgroundImage: difficultyUrl(markCount, "#14100a"),
           backgroundRepeat: "no-repeat",
         }}
       />

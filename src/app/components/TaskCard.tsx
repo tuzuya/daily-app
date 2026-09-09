@@ -47,11 +47,15 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
     [isExtra],
   );
 
-  /* カテゴリの絵柄は**難易度によらず種類の色**にする（2026-09-09 決定）。
-   * 以前は箔（HARD/EXTRA）のとき暗いシルエットにしていたが、
-   * 同じカテゴリのカードが難易度で別物に見えてしまっていた。
-   * カテゴリは一目で判別できることを優先する。 */
-  const sprite = categorySpriteUrl(task.category, design.hex, 3);
+  /* カテゴリの絵柄は原則**種類の色**。ただし HARD だけ黒にする。
+   * HARD は枠の中が虹の箔なので、種類の色を乗せると縞と明度が近くなって沈む。
+   * EXTRA は枠の中が無地の暗い面なので種類の色のままで読める。
+   * （2026-09-09 決定。docs/pixel-style-guide.md §4.5） */
+  const sprite = categorySpriteUrl(
+    task.category,
+    isHard ? "#14100a" : design.hex,
+    3,
+  );
 
   const inkOnFace = isExtra ? "var(--ink)" : "var(--ink-inverse)";
 

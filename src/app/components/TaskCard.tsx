@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { Task } from "@/types/task";
 import { categoryDesign, inferLevel } from "@/lib/task-design";
-import { categorySpriteUrl, gemsSize, gemsUrl } from "@/lib/pixel-sprites";
+import { categorySpriteUrl, starsSize, starsUrl } from "@/lib/pixel-sprites";
 import { holoStripe, PASTEL, platinumRays, sparkle } from "@/lib/pixel-foil";
 
 /**
@@ -32,7 +32,7 @@ export type TaskCardProps = {
 export default function TaskCard({ task, onPress }: TaskCardProps) {
   const design = categoryDesign(task.category);
   const level = inferLevel(task.points);
-  const gemCount = { easy: 1, normal: 2, hard: 3, extra: 4 }[level];
+  const starCount = { easy: 1, normal: 2, hard: 3, extra: 4 }[level];
 
   const isExtra = level === "extra";
   const isHard = level === "hard";
@@ -90,31 +90,36 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
         </>
       )}
 
-      {/* --- HARD: スプライト枠の中を虹の箔にする --- */}
-      {/* カテゴリ帯 */}
+      {/* --- 上辺のベベル。光源は左上（§4.1）--- */}
+      <span
+        className="absolute"
+        style={{ left: 3, top: 3, width: 144, height: 3, background: "var(--bevel-hi)" }}
+        aria-hidden="true"
+      />
+
+      {/* カテゴリ帯。**高さ 18px**（Figma: strip y=6 h=18 / edge y=24）。
+          42px にするとスプライト枠（y=36）に食い込む */}
       <span
         className={["absolute", design.stripClass].join(" ")}
-        style={{ left: 3, top: 6, width: 144, height: 42 }}
+        style={{ left: 3, top: 6, width: 144, height: 18 }}
         aria-hidden="true"
       />
       <span
         className="absolute bg-ink-outline"
-        style={{ left: 3, top: 48, width: 144, height: 3 }}
+        style={{ left: 3, top: 24, width: 144, height: 3 }}
         aria-hidden="true"
       />
       <span
-        className="font-label absolute text-[10px] text-ink"
-        style={{ left: 15, top: 20 }}
+        className="font-label absolute text-[10px] leading-[14px] text-ink"
+        style={{ left: 9, top: 8 }}
       >
         {design.label ?? task.category.toUpperCase()}
       </span>
 
-      {/* スプライト枠 */}
+      {/* スプライト枠。**必ず不透明**にする。
+          EXTRA で透明にすると背後の放射光が透けて絵柄が読めない */}
       <span
-        className={[
-          "absolute border-[3px] border-ink-outline",
-          isExtra ? "" : "bg-panel",
-        ].join(" ")}
+        className="absolute border-[3px] border-ink-outline bg-panel"
         style={{
           left: 51,
           top: 36,
@@ -192,6 +197,21 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
           />
         ))}
 
+      {/* 下辺のベベル */}
+      <span
+        className="absolute"
+        style={{
+          left: 3,
+          top: 194,
+          width: 144,
+          height: 3,
+          background: isExtra
+            ? "var(--ink-outline)"
+            : `var(${design.faceDarkVar})`,
+        }}
+        aria-hidden="true"
+      />
+
       {/* --- 文字 --- */}
       <span
         className="absolute text-[14px] leading-[22px]"
@@ -219,8 +239,8 @@ export default function TaskCard({ task, onPress }: TaskCardProps) {
         style={{
           left: 9,
           top: 154,
-          ...gemsSize(gemCount),
-          backgroundImage: gemsUrl(gemCount, isExtra ? "#f4ecd8" : "#14100a"),
+          ...starsSize(starCount),
+          backgroundImage: starsUrl(starCount, isExtra ? "#f4ecd8" : "#14100a"),
           backgroundRepeat: "no-repeat",
         }}
         aria-hidden="true"

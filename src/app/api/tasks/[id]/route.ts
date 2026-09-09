@@ -67,7 +67,23 @@ export async function PATCH(
     updates.estimatedMinutes =
       b.estimatedMinutes === null ? null : Math.trunc(b.estimatedMinutes);
   }
-  if (typeof b.done === "boolean") updates.done = b.done;
+  if (typeof b.done === "boolean") {
+    updates.done = b.done;
+    // 達成した瞬間を記録する。取り消したら消す
+    updates.completedAt = b.done ? new Date() : null;
+  }
+
+  /* Today へ移すときは「どの日の Today か」を必ず更新する。
+   * 更新しないと、前日の日付のまま今日の Today に居座り、
+   * 翌朝の仕分けで毎回引っかかる。 */
+  if (b.screen === "today") {
+    updates.todayDate =
+      typeof b.todayDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.todayDate)
+        ? b.todayDate
+        : new Date().toLocaleDateString("sv-SE");
+  } else if (b.screen !== undefined) {
+    updates.todayDate = null;
+  }
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No updatable fields" }, { status: 400 });

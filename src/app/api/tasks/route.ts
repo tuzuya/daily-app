@@ -16,8 +16,17 @@ export async function GET(req: Request) {
   const screen = searchParams.get("screen");
   const includeDone = searchParams.get("includeDone") === "1";
 
+  const todayParam = searchParams.get("today");
+
   const filters = [];
   if (screen && isScreen(screen)) filters.push(eq(tasks.screen, screen));
+
+  /* Today は「**今日の** Today に置かれたもの」だけを返す。
+   * screen だけで絞ると前日の残りが混ざり、日跨ぎの仕分けが意味を失う。
+   * 日付はクライアントのローカル日付（§8.2）。 */
+  if (screen === "today" && todayParam && /^\d{4}-\d{2}-\d{2}$/.test(todayParam)) {
+    filters.push(eq(tasks.todayDate, todayParam));
+  }
   /* 達成したタスクは既定で外す。
    * これが無いと、ドラッグで達成したカードがリロードで Today に戻ってくる
    * （docs/ai-product-brief.md §7.1 b）。
@@ -60,6 +69,16 @@ export async function POST(req: Request) {
 
   const { deadline, points, description, estimatedMinutes, imageUrl } = b;
 
+  /* Today に入れるなら「どの日の Today か」を必ず記録する。
+   * 日付はクライアントのローカル日付を受け取る（§8.2）。
+   * 無ければサーバー日付で代用するが、時刻帯がズレる可能性がある。 */
+  const todayDate =
+    screen === "today"
+      ? typeof b.todayDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(b.todayDate)
+        ? b.todayDate
+        : new Date().toLocaleDateString("sv-SE")
+      : null;
+
   const [row] = await db
     .insert(tasks)
     .values({
@@ -77,6 +96,7 @@ export async function POST(req: Request) {
           ? Math.trunc(estimatedMinutes)
           : null,
       imageUrl: typeof imageUrl === "string" ? imageUrl : null,
+      todayDate,
       updatedAt: new Date(),
     })
     .returning();

@@ -43,6 +43,8 @@ export function toApiTask(row: typeof tasks.$inferSelect): Task {
     description: row.description ?? undefined,
     estimatedMinutes: row.estimatedMinutes ?? undefined,
     screen: row.screen as TaskScreen,
+    todayDate: row.todayDate ?? undefined,
+    completedAt: row.completedAt ? row.completedAt.getTime() : undefined,
     createdAt: row.createdAt.getTime(),
     updatedAt: row.updatedAt.getTime(),
     done: row.done,

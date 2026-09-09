@@ -17,6 +17,8 @@ import QuestClearFx from "../components/QuestClearFx";
 import TopBar from "../components/TopBar";
 import TaskFormOverlay from "../components/TaskFormOverlay";
 import { useTotalXp } from "@/lib/use-total-xp";
+import { useDaybreak } from "@/lib/use-daybreak";
+import DaybreakOverlay from "../components/DaybreakOverlay";
 
 /**
  * HOME。当日のタスクを扇状のカルーセルで見せ、
@@ -28,6 +30,8 @@ import { useTotalXp } from "@/lib/use-total-xp";
 export default function TodayPage() {
   const { tasks, loading, error, refetch, removeLocal } = useTasks("today");
   const { totalXp, add: addXp, reload: reloadXp } = useTotalXp();
+  /* 日付が変わって最初に開いたときだけ、前日の残りの仕分けを出す（§4.6） */
+  const { pending, needsTriage, dismiss } = useDaybreak();
 
   const [dropProgress, setDropProgress] = useState(0);
   /** 達成エフェクトはルートを持たないオーバーレイ（§5.2） */
@@ -72,6 +76,19 @@ export default function TodayPage() {
   };
 
   const remaining = tasks.length;
+
+  /* 仕分けが先。Today を見せる前に「きのうの のこり」を片付けてもらう */
+  if (needsTriage && pending) {
+    return (
+      <DaybreakOverlay
+        tasks={pending}
+        onDone={() => {
+          dismiss();
+          refetch();
+        }}
+      />
+    );
+  }
 
   return (
     <>

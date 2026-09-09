@@ -11,6 +11,10 @@ export type Task = {
   updatedAt?: number;
   screen: TaskScreen;
   done: boolean;
+  /** どの日の Today に置かれたか（YYYY-MM-DD, ローカル日付） */
+  todayDate?: string;
+  /** 達成した瞬間 */
+  completedAt?: number;
 };
 
 /**

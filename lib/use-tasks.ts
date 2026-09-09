@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Task, TaskCategory, TaskLevel, TaskScreen } from "@/types/task";
 import { LEVELS } from "./task-design";
+import { today } from "./local-date";
 
 /**
  * 画面ごとのタスク取得。旧 `SpaceNavigator.useTasksForScreen` を移設したもの。
@@ -47,7 +48,13 @@ export function useTasks(screen: TaskScreen): TasksState {
   useEffect(() => {
     let cancelled = false;
 
-    fetch(`/api/tasks?screen=${screen}`)
+    /* Today だけは「今日の日付」も送る。送らないと前日の残りが混ざる */
+    const url =
+      screen === "today"
+        ? `/api/tasks?screen=today&today=${today()}`
+        : `/api/tasks?screen=${screen}`;
+
+    fetch(url)
       .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -87,7 +94,7 @@ export async function moveTaskToToday(id: string): Promise<void> {
   const res = await fetch(`/api/tasks/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ screen: "today" }),
+    body: JSON.stringify({ screen: "today", todayDate: today() }),
   });
   if (!res.ok) throw new Error("Today への移動に失敗しました");
 }
@@ -137,7 +144,11 @@ export async function createTask(
   const res = await fetch("/api/tasks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...toPayload(v), screen }),
+    body: JSON.stringify({
+      ...toPayload(v),
+      screen,
+      ...(screen === "today" ? { todayDate: today() } : {}),
+    }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);

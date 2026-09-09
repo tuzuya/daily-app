@@ -1,6 +1,9 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+
+/* `tw-animate-css` と `shadcn/tailwind.css` の import は外した。
+ * ピクセル調では animate-* も shadcn の accordion / data-* も使わない。
+ * shadcn 互換のトークン（--background 等）は残してあるので、
+ * 将来 shadcn を入れ直しても色は合う。 */
 
 /* ============================================================
  * デザイントークン（Figma variables の着地点）

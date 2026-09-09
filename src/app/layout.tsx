@@ -36,13 +36,30 @@ export const metadata: Metadata = {
   // TODO: アプリ名が未決（docs/pixel-style-guide.md §9.9）。仮の名前
   title: "DAILY QUEST",
   description: "毎日のタスクをクエストにして、アプリの中の自分を育てる",
+  applicationName: "DAILY QUEST",
+  appleWebApp: {
+    // iOS はマニフェストの display を見ないので、ここで standalone にする
+    capable: true,
+    title: "DAILY QUEST",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
+  // 相対URLをどのホストで解決するか。未設定だとビルド時に警告が出る
+  metadataBase: process.env.NEXT_PUBLIC_SITE_URL
+    ? new URL(process.env.NEXT_PUBLIC_SITE_URL)
+    : undefined,
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  // ノッチの内側まで描く。§8.6 の safe-area 指定とセット
   viewportFit: "cover",
+  themeColor: "#221c12",
 };
 
 export default function RootLayout({

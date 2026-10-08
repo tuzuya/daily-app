@@ -18,6 +18,10 @@
   - **移行作業は `DATABASE_URL` の差し替えのみ。** コード変更は不要
 - **認証**: **未実装かつ方針も未決。** 以前は「Supabase Auth を使う」前提だったが、
   DB 乗り換えの検討でこの前提が崩れた。実装する前に方針を決めること
+  - **暫定措置（2026-10-08）**: `src/proxy.ts` でサイト全体に Basic 認証をかけている。
+    API にユーザー確認が無く、URL を知る誰でもタスクを読み書きできたため。
+    `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` が本番で未設定だと 503 で止まる（`next dev` は素通し）。
+    本実装が入ったら置き換える
 - **ORM**: Drizzle ORM
 - **Lint**: ESLint
 - **Runtime**: Node.js（npm / `package-lock.json` あり）

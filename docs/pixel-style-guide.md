@@ -5,7 +5,7 @@
 
 - Figma ファイル: [daily-app Redesign](https://www.figma.com/design/yp8EzSlzOom9KwycPKKSaD)
 - Figma 変数コレクション: `daily-app / pixel`（モード名 `Pixel`）
-- 参考画像: `docs/design-refs/tone-manner-design.png`
+- 参考画像: `docs/design-refs/tone-manner-design.png`（第三者の画像のため手元のみ。リポジトリには含めない）
 - コード側トークンの正本: `src/app/global.css`（§7 を参照）
 
 ---

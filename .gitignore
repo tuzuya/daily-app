@@ -43,3 +43,7 @@ next-env.d.ts
 
 # claude code (local-only settings)
 .claude/settings.local.json
+
+# デザイン参考画像は第三者の著作物を含むのでコミットしない（docs/design-refs/README.md）
+/docs/design-refs/*
+!/docs/design-refs/README.md

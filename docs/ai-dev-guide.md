@@ -11,7 +11,7 @@
 - **UI**: Tailwind CSS v4
 - **UI utilities**: shadcn, Radix関連, Headless UI
 - **バックエンドAPI**: **Next.js Route Handlers**（`src/app/api/**/route.ts`）
-- **DB**: **Neon**（PostgreSQL）★2026-09-06 決定・**移行未実行**
+- **DB**: **Neon**（PostgreSQL）★2026-09-06 決定・移行済み
   - `postgres-js` で直接接続する。ORM 以外のベンダー機能は使わない
   - 旧: Supabase。Auth / Storage / Realtime を一つも使っておらず、無料枠の
     1週間休止が痛点だったため乗り換え（`docs/backend-implementation-plan.md` §4）
@@ -68,7 +68,7 @@
 - **選定理由（当時）**: Todo、ユーザー、タグなどのリレーショナルデータとPostgreSQLの相性が良いため。認証（Supabase Auth）が内包され、友人共有時のセキュアなログインを容易に実装できるため。無料枠が広く、コストを抑えつつスケール可能なため。
 - **その後（2026-09-05）**: 実際には **Supabase Auth を使わないまま**、`postgres-js` で
   Postgres に直接繋ぐ形になった。つまり選定理由のうち「認証が内包される」は**効いていない**。
-  加えて無料枠は1週間の無操作で休止するため、**Neon への乗り換えを検討中**
+  加えて無料枠は1週間の無操作で休止するため、**Neon へ乗り換えた**
   （`docs/backend-implementation-plan.md` §4）。
 
 **ORM**
@@ -372,7 +372,7 @@ blur / backdrop-filter / グラデーション / ぼかし影を**すべて禁�
 - `npm run dev`
 - `npm run lint` — **既知のエラー5件あり**（`GooeyNav` / `SpaceNavigator` / `TaskCarousel` の `react-hooks/refs` と `react-hooks/set-state-in-effect`）。新しく増やさないことを基準にする
 - `npm run build`
-- `npm run db:push` — Drizzle スキーマを Supabase に反映
+- `npm run db:push` — Drizzle スキーマを Neon に反映
 
 ## 9.5 Figma 連携（design → code）
 

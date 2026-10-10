@@ -245,7 +245,6 @@ Today に入る前の関門なので、下部ナビは出さない。
 - **デザイン**: ピクセル調への刷新中。正本は `docs/pixel-style-guide.md`、
   Figma に HOME / 一覧3画面 / 達成エフェクトが揃っている
 - **既知の問題**:
-  - **DB 未接続**。Supabase が休止しており、Neon への移行が未実行（2026-09-06 決定）
   - `public/task-images/` が存在せず、`lib/task-design.ts` の `image` パスが全て 404
     （ピクセル版ではスプライトに置き換わるため解消見込み）
   - `docs/explain/carousel-3d-depth-tuning.md` は旧デザイン（3D奥行き）の解説。

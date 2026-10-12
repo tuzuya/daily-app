@@ -13,38 +13,44 @@ UI はピクセルアートで統一しています。以前はぼかしやグ�
 
 ## 使い方の流れ
 
-iPhone で実際に操作した画面です。
+iPhone で実際に操作した画面です。上の段が1日の流れ、下の段が翌日以降に使う画面です。
 
 <table>
   <tr>
     <th>1. クエストを作る</th>
-    <th>2. 今日のクエストを選ぶ</th>
-    <th>3. 達成する</th>
+    <th>2. 今日のクエスト</th>
+    <th>3. ドラッグで達成</th>
+    <th>4. クリア</th>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/create.webp" width="240" alt="タスク作成画面"></td>
-    <td><img src="docs/screenshots/today.webp" width="240" alt="Today のカードカルーセル"></td>
-    <td><img src="docs/screenshots/clear.webp" width="240" alt="達成時の演出"></td>
+    <td><img src="docs/screenshots/create.webp" width="190" alt="タスク作成画面"></td>
+    <td><img src="docs/screenshots/today.webp" width="190" alt="Today のカードカルーセル"></td>
+    <td><img src="docs/screenshots/drag.webp" width="190" alt="カードを CLEAR へドラッグ"></td>
+    <td><img src="docs/screenshots/clear.webp" width="190" alt="達成時の演出"></td>
   </tr>
   <tr>
     <td>タイトル・カテゴリ・難易度・所要時間を決める。難易度で獲得 XP が変わる</td>
-    <td>今日のタスクがカードで並ぶ。カードを「CLEAR!」へ下にドラッグすると達成</td>
-    <td>達成すると演出が出て、XP がたまる</td>
+    <td>今日のタスクがカードのカルーセルで並ぶ。左右にめくって選ぶ</td>
+    <td>カードを「CLEAR!」へ下にドラッグすると達成</td>
+    <td>演出が出て XP がたまり、レベルが上がる</td>
   </tr>
   <tr>
-    <th>4. 先の予定を見る（Next）</th>
-    <th>5. やり残しを拾う（Overdue）</th>
-    <th>6. 小さな習慣を足す（Buffs）</th>
+    <th>5. 翌朝の仕分け</th>
+    <th>6. Next</th>
+    <th>7. Overdue</th>
+    <th>8. Buffs</th>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/next.webp" width="240" alt="Next の一覧"></td>
-    <td><img src="docs/screenshots/overdue.webp" width="240" alt="Overdue の一覧"></td>
-    <td><img src="docs/screenshots/buffs.webp" width="240" alt="Buffs の一覧"></td>
+    <td><img src="docs/screenshots/daybreak.webp" width="190" alt="翌朝の仕分け画面"></td>
+    <td><img src="docs/screenshots/next.webp" width="190" alt="Next の一覧"></td>
+    <td><img src="docs/screenshots/overdue.webp" width="190" alt="Overdue の一覧"></td>
+    <td><img src="docs/screenshots/buffs.webp" width="190" alt="Buffs の一覧"></td>
   </tr>
   <tr>
+    <td>きのう終わらなかったタスクを「今日やる / あとで」に振り分けて1日を始める</td>
     <td>今後やるタスクの一覧。カテゴリで絞り込み、選んで Today へ送る</td>
     <td>期限内に終わらなかったタスクの一覧。選んで Today へ戻す</td>
-    <td>生活を少し良くするタスクの一覧（機能は実装中）</td>
+    <td>生活を少し良くする小さなタスクの一覧（機能は実装中）</td>
   </tr>
 </table>
 

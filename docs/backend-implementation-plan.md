@@ -116,8 +116,8 @@ UI 側の話なので、詳細は `docs/ai-product-brief.md` §7 を見る。
 - **完了トグルと削除の UI** — API は両方対応済みだが、導線がまだ無い
   （ピクセル版では「カードを下にドラッグして達成」＋ 詳細オーバーレイの削除ボタン）
 - **カテゴリ5種化** — DB / API / 型の一括変更（`docs/pixel-style-guide.md` §7）
-- **Supabase への接続不良**（`tenant/user ... not found`）の解消
-  → **無料プランの休止が原因の可能性が高い**。乗り換えを検討中（§4）
+- ~~**Supabase への接続不良**（`tenant/user ... not found`）の解消~~
+  → **対応済み**。無料プランの休止が原因だったため Neon へ移行した（§4）
 - **認証の実装方針が未決に戻った** — `docs/ai-dev-guide.md` §1 と
   `docs/ai-product-brief.md` §4.5 は「認証は Supabase Auth」を前提に書かれているが、
   §4 の乗り換えを実行すると**この前提が崩れる**。DB を移すより先に、
@@ -146,7 +146,7 @@ UI 側の話なので、詳細は `docs/ai-product-brief.md` §7 を見る。
 
 ---
 
-## 4. DB は Neon に決定（2026-09-06）★未実行
+## 4. DB は Neon に決定（2026-09-06）★移行済み
 
 > **決定**: **Neon を採用**。作業は `DATABASE_URL` の差し替えのみ。
 > 認証の宿題は残る（§3）が、Supabase Auth は元々使っていないので
